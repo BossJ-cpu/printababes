@@ -16,8 +16,13 @@ RUN a2enmod rewrite
 ENV APACHE_DOCUMENT_ROOT /var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf
 RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf
-# AllowOverride All so .htaccess works
-RUN sed -i '/<Directory \/var\/www\/>/,/<\/Directory>/ s/AllowOverride None/AllowOverride All/' /etc/apache2/apache2.conf
+# Explicitly allowing override for the document root
+RUN echo "<Directory ${APACHE_DOCUMENT_ROOT}>" >> /etc/apache2/conf-available/laravel.conf \
+ && echo "    Options Indexes FollowSymLinks" >> /etc/apache2/conf-available/laravel.conf \
+ && echo "    AllowOverride All" >> /etc/apache2/conf-available/laravel.conf \
+ && echo "    Require all granted" >> /etc/apache2/conf-available/laravel.conf \
+ && echo "</Directory>" >> /etc/apache2/conf-available/laravel.conf \
+ && a2enconf laravel
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer

@@ -18,6 +18,6 @@ export default defineConfig({
     },
     preview: {
         host: true, // Required for external access on Render
-        allowedHosts: ['preview.allowedHosts'], // Add your Render domain here
+        allowedHosts: ['printababes.onrender.com'], // ✅ Correct domain
     },
 });

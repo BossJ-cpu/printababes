@@ -11,8 +11,13 @@ export default defineConfig({
         tailwindcss(),
     ],
     server: {
+        host: true, // Listen on all network interfaces (required for Render)
         watch: {
-            ignored: ['**/storage/framework/views/**'],
+            ignored: ['**/storage/framework/views/**'], // Keep ignoring Laravel compiled views
         },
+    },
+    preview: {
+        host: true, // Required for external access on Render
+        allowedHosts: ['printababes.onrender.com'], // Add your Render domain here
     },
 });

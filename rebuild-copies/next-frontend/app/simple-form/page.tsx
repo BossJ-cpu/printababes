@@ -34,7 +34,12 @@ export default function SimpleForm() {
 
     const fetchSubmissions = async () => {
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/submissions`);
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/submissions`, {
+                headers: {
+                    'Bypass-Tunnel-Reminder': 'true',
+                    'ngrok-skip-browser-warning': 'true'
+                }
+            });
             if (res.ok) {
                 const data = await res.json();
                 setSubmissions(data);
@@ -46,7 +51,12 @@ export default function SimpleForm() {
 
     const fetchTemplates = async () => {
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pdf-templates`);
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pdf-templates`, {
+                headers: {
+                    'Bypass-Tunnel-Reminder': 'true',
+                    'ngrok-skip-browser-warning': 'true'
+                }
+            });
             if (res.ok) {
                 const data = await res.json();
                 setTemplates(data);
@@ -68,7 +78,9 @@ export default function SimpleForm() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Accept': 'application/json'
+                    'Accept': 'application/json',
+                    'Bypass-Tunnel-Reminder': 'true',
+                    'ngrok-skip-browser-warning': 'true'
                 },
                 body: JSON.stringify({ name, age: parseInt(age), email })
             });

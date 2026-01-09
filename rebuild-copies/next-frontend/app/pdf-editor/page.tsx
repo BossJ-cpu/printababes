@@ -173,7 +173,12 @@ export default function PdfEditorPage() {
 
   const fetchProfiles = async () => {
       try {
-          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pdf-templates`);
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pdf-templates`, {
+              headers: {
+                  'Bypass-Tunnel-Reminder': 'true',
+                  'ngrok-skip-browser-warning': 'true'
+              }
+          });
           if (res.ok) {
               const data = await res.json();
               setProfiles(data);
@@ -195,7 +200,12 @@ export default function PdfEditorPage() {
     setLoading(true);
     setPreviewError(null);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pdf-templates/${key}`);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pdf-templates/${key}`, {
+          headers: {
+              'Bypass-Tunnel-Reminder': 'true',
+              'ngrok-skip-browser-warning': 'true'
+          }
+      });
       if (!res.ok) throw new Error('Failed to fetch');
       const data = await res.json();
       setTemplate({
@@ -241,6 +251,8 @@ export default function PdfEditorPage() {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
+          'Bypass-Tunnel-Reminder': 'true',
+          'ngrok-skip-browser-warning': 'true'
         },
         body: JSON.stringify({ 
             fields_config: template.fields_config,
@@ -277,6 +289,10 @@ export default function PdfEditorPage() {
       try {
           const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pdf-templates/${template.key}`, {
               method: 'DELETE',
+              headers: {
+                  'Bypass-Tunnel-Reminder': 'true',
+                  'ngrok-skip-browser-warning': 'true'
+              }
           });
           
           if (res.ok) {
@@ -312,7 +328,12 @@ export default function PdfEditorPage() {
 
      try {
        setPreviewError(null);
-       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pdf-templates/${keyToUse}/preview?${params.toString()}`);
+       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pdf-templates/${keyToUse}/preview?${params.toString()}`, {
+           headers: {
+               'Bypass-Tunnel-Reminder': 'true',
+               'ngrok-skip-browser-warning': 'true'
+           }
+       });
        
        if (!res.ok) {
            if (res.status === 404) {
@@ -345,6 +366,10 @@ export default function PdfEditorPage() {
         setSaving(true);
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pdf-templates/${template.key}/upload`, {
             method: 'POST',
+            headers: {
+                'Bypass-Tunnel-Reminder': 'true',
+                'ngrok-skip-browser-warning': 'true'
+            },
             body: formData,
         });
         
@@ -366,7 +391,11 @@ export default function PdfEditorPage() {
         // We don't need to save right away if we just uploaded, unless we want to clear fields on backend too
         await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pdf-templates/${template.key}`, {
             method: 'PUT',
-            headers: {'Content-Type': 'application/json'},
+            headers: {
+                'Content-Type': 'application/json',
+                'Bypass-Tunnel-Reminder': 'true',
+                'ngrok-skip-browser-warning': 'true'
+            },
             body: JSON.stringify({ fields_config: {} }),
         });
 

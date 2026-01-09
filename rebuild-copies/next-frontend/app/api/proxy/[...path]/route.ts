@@ -70,7 +70,9 @@ async function handleRequest(req: NextRequest, { params }: { params: Promise<{ p
         resHeaders.delete('content-length');
         resHeaders.delete('transfer-encoding');
         resHeaders.delete('connection');
-        
+        // Force chunked
+        resHeaders.delete('content-length');
+
         // Ensure content-type is passed
         if (!resHeaders.has('content-type')) {
              // fallback or leave empty

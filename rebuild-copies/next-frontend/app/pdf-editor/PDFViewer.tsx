@@ -58,7 +58,7 @@ export default function PDFViewer({ url, template, onAddField }: PDFViewerProps)
                 error={<div style={{ padding: '2.5rem', color: '#ef4444' }}>Failed to render PDF.</div>}
             >
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {Array.from(new Array(numPages), (el, index) => {
+                {Array.from(new Array(numPages), (_, index) => {
                     const pageNumber = index + 1;
                     return (
                         <div 

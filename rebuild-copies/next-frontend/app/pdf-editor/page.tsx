@@ -173,7 +173,7 @@ export default function PdfEditorPage() {
 
   const fetchProfiles = async () => {
       try {
-          const res = await fetch('http://localhost:8000/api/pdf-templates');
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pdf-templates`);
           if (res.ok) {
               const data = await res.json();
               setProfiles(data);
@@ -195,7 +195,7 @@ export default function PdfEditorPage() {
     setLoading(true);
     setPreviewError(null);
     try {
-      const res = await fetch(`http://localhost:8000/api/pdf-templates/${key}`);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pdf-templates/${key}`);
       if (!res.ok) throw new Error('Failed to fetch');
       const data = await res.json();
       setTemplate({
@@ -236,7 +236,7 @@ export default function PdfEditorPage() {
     }
     setSaving(true);
     try {
-      const res = await fetch(`http://localhost:8000/api/pdf-templates/${template.key}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pdf-templates/${template.key}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -275,7 +275,7 @@ export default function PdfEditorPage() {
 
       setSaving(true);
       try {
-          const res = await fetch(`http://localhost:8000/api/pdf-templates/${template.key}`, {
+          const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pdf-templates/${template.key}`, {
               method: 'DELETE',
           });
           
@@ -312,7 +312,7 @@ export default function PdfEditorPage() {
 
      try {
        setPreviewError(null);
-       const res = await fetch(`http://localhost:8000/api/pdf-templates/${keyToUse}/preview?${params.toString()}`);
+       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pdf-templates/${keyToUse}/preview?${params.toString()}`);
        
        if (!res.ok) {
            if (res.status === 404) {
@@ -343,7 +343,7 @@ export default function PdfEditorPage() {
 
     try {
         setSaving(true);
-        const res = await fetch(`http://localhost:8000/api/pdf-templates/${template.key}/upload`, {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pdf-templates/${template.key}/upload`, {
             method: 'POST',
             body: formData,
         });
@@ -364,7 +364,7 @@ export default function PdfEditorPage() {
         
         // Refresh preview (which should show empty PDF now)
         // We don't need to save right away if we just uploaded, unless we want to clear fields on backend too
-        await fetch(`http://localhost:8000/api/pdf-templates/${template.key}`, {
+        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pdf-templates/${template.key}`, {
             method: 'PUT',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({ fields_config: {} }),

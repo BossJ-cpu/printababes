@@ -34,7 +34,7 @@ export default function SimpleForm() {
 
     const fetchSubmissions = async () => {
         try {
-            const res = await fetch('http://localhost:8000/api/submissions');
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/submissions`);
             if (res.ok) {
                 const data = await res.json();
                 setSubmissions(data);
@@ -46,7 +46,7 @@ export default function SimpleForm() {
 
     const fetchTemplates = async () => {
         try {
-            const res = await fetch('http://localhost:8000/api/pdf-templates');
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pdf-templates`);
             if (res.ok) {
                 const data = await res.json();
                 setTemplates(data);
@@ -64,7 +64,7 @@ export default function SimpleForm() {
         setMessage('');
 
         try {
-            const res = await fetch('http://localhost:8000/api/submissions', {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/submissions`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -94,7 +94,7 @@ export default function SimpleForm() {
         if (!selectedSubmissionId || !selectedTemplateKey) return;
         
         // Open PDF in new tab with optional template key
-        let url = `http://localhost:8000/app/generate-submission-pdf/${selectedSubmissionId}/${selectedTemplateKey}`;
+        let url = `${process.env.NEXT_PUBLIC_API_URL}/app/generate-submission-pdf/${selectedSubmissionId}/${selectedTemplateKey}`;
         window.open(url, '_blank');
     };
 

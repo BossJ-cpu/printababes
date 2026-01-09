@@ -18,6 +18,6 @@ export default defineConfig({
     },
     preview: {
         host: true, // Required for external access on Render
-        allowedHosts: ['printababes.onrender.com'], // ✅ Correct domain
+        allowedHosts: ['printababes-fvrxrkwfx-bossj-cpus-projects.vercel.app'], // ✅ Correct domain
     },
 });

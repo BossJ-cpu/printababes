@@ -4,6 +4,7 @@
     "type": "module",
 "scripts": {
   "dev": "vite",
+  "dev:full": "concurrently \"php artisan serve\" \"cd rebuild-copies/next-frontend && npm run dev\"",
   "build": "vite build",
   "preview": "vite preview",
   "start": "vite preview --port $PORT --host"

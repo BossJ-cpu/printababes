@@ -4,6 +4,9 @@ const path = require('path');
 const nextConfig = {
   reactStrictMode: true,
   outputFileTracingRoot: path.join(__dirname, '../../'),
+  env: {
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || '/api/proxy',
+  },
 }
 
 module.exports = nextConfig

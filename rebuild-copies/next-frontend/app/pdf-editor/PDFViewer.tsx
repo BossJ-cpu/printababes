@@ -56,8 +56,8 @@ export default function PDFViewer({ url, template, onAddField }: PDFViewerProps)
                 onLoadSuccess={({ numPages }) => setNumPages(numPages)}
                 loading={<div style={{ padding: '2.5rem' }}>Loading PDF...</div>}
                 error={<div style={{ padding: '2.5rem', color: '#ef4444' }}>Failed to render PDF.</div>}
-                style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}
             >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {Array.from(new Array(numPages), (el, index) => {
                     const pageNumber = index + 1;
                     return (
@@ -126,6 +126,7 @@ export default function PDFViewer({ url, template, onAddField }: PDFViewerProps)
                         </div>
                     );
                 })}
+                </div>
             </Document>
         </div>
     );

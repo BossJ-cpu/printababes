@@ -2,12 +2,12 @@
     "$schema": "https://www.schemastore.org/package.json",
     "private": true,
     "type": "module",
-    "scripts": {
-        "build": "vite build",
-        "dev": "vite",
-        "dev:next": "npm --prefix rebuild-copies/next-frontend run dev",
-        "dev:full": "concurrently \"php artisan serve\" \"npm run dev\" \"npm run dev:next\""
-    },
+"scripts": {
+  "dev": "vite",
+  "build": "vite build",
+  "preview": "vite preview",
+  "start": "vite preview --port 3000 --host"
+},
     "devDependencies": {
         "@tailwindcss/vite": "^4.0.0",
         "autoprefixer": "^10.4.23",

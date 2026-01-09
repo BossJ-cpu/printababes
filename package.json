@@ -6,8 +6,9 @@
   "dev": "vite",
   "build": "vite build",
   "preview": "vite preview",
-  "start": "vite preview --port 3000 --host"
-},
+  "start": "vite preview --port $PORT --host"
+}
+,
     "devDependencies": {
         "@tailwindcss/vite": "^4.0.0",
         "autoprefixer": "^10.4.23",

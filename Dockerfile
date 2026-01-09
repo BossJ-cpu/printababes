@@ -47,7 +47,8 @@ RUN sed -i 's/<VirtualHost \*:80>/<VirtualHost *:${PORT}>/' /etc/apache2/sites-a
 
 # Initialize environment
 RUN cp .env.example .env
-RUN php artisan key:generate
+# Remove the static key generation during build because Render injects the real APP_KEY at runtime
+# RUN php artisan key:generate
 
 # Entrypoint to run migrations and start apache
 COPY docker-entrypoint.sh /usr/local/bin/

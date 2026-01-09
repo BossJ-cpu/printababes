@@ -358,6 +358,12 @@ export default function PdfEditorPage() {
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files?.[0] || !template) return;
+
+    if (!template.key) {
+        alert("Please enter a Profile Name (Key) before uploading a PDF.");
+        e.target.value = ''; // Reset file input
+        return;
+    }
     
     const formData = new FormData();
     formData.append('pdf', e.target.files[0]);

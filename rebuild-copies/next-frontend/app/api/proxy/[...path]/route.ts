@@ -78,8 +78,15 @@ async function handleRequest(req: NextRequest, { params }: { params: Promise<{ p
 
     } catch (error: any) {
         console.error('Proxy Error:', error);
+        // Expose targetUrl only in development or if explicitly allowed for debugging
+        const isDev = process.env.NODE_ENV === 'development';
         return NextResponse.json(
-            { error: 'Backend Connection Failed', details: error.message },
+            { 
+                error: 'Backend Connection Failed', 
+                details: error.message,
+                target: isDev ? targetUrl : undefined, // Hide in prod to avoid leaking internal URLs
+                hint: "Check BACKEND_API_URL in Vercel. Vercel only hosts the Frontend (Next.js). The Backend (Laravel) must be hosted elsewhere (e.g. Render)."
+            },
             { status: 502 }
         );
     }

@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["DOM", "ES2020"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "noEmit": true,
+    "strict": false,
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "next/link": ["../../next-frontend/node_modules/next/link"],
+      "next/*": ["../../next-frontend/node_modules/next/*"],
+      "react": ["../../next-frontend/node_modules/react"],
+      "react/*": ["../../next-frontend/node_modules/react/*"],
+      "react-dom": ["../../next-frontend/node_modules/react-dom"],
+      "react-dom/*": ["../../next-frontend/node_modules/react-dom/*"],
+      "react-pdf": ["../../next-frontend/node_modules/react-pdf"],
+      "react-pdf/*": ["../../next-frontend/node_modules/react-pdf/*"],
+      "pdfjs-dist": ["../../next-frontend/node_modules/pdfjs-dist/*"],
+      "pdfjs-dist/*": ["../../next-frontend/node_modules/pdfjs-dist/*"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx"]
+}

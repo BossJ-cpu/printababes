@@ -149,11 +149,12 @@ class PdfTemplateController extends Controller
                         // Calculate Baseline Position for explicit Text placement
                         // User coordinates (x,y) are the Top-Left corner.
                         // FPDF Text() places text on the Baseline.
-                        // We must shift Y down by the "Ascent" (approx 80% of font height) to align the Top.
-                        $ascentFactor = 0.8;
-                        $baselineY = $y + ($fontSizeMm * $ascentFactor);
+                        // We must shift Y down by the "Ascent" to align the Top.
+                        // Standard type: Baseline is roughly 100% of the Font Height down from the top block limit.
+                        // (Usually ascent + descent + leading, but for single lines using Y + size is a safe alignment)
+                        $baselineOffset = $fontSizeMm;
 
-                        $pdf->Text($x, $baselineY, $text);
+                        $pdf->Text($x, $y + $baselineOffset, $text);
                      }
                 }
             }

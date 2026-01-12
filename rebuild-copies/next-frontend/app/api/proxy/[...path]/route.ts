@@ -66,6 +66,12 @@ async function handleRequest(req: NextRequest, { params }: { params: Promise<{ p
         resHeaders.delete('access-control-allow-methods');
         resHeaders.delete('access-control-allow-headers');
         
+        // CRITICAL: Remove content-encoding headers to prevent decoding issues
+        // Let the browser handle the content as-is from our proxy
+        resHeaders.delete('content-encoding');
+        resHeaders.delete('content-length'); // Let browser recalculate
+        resHeaders.delete('transfer-encoding');
+        
         // Ensure content-type is passed
         if (!resHeaders.has('content-type')) {
              // fallback or leave empty

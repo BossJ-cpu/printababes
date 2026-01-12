@@ -104,6 +104,8 @@ export default function PDFViewer({
                   if (fieldPage !== pageNumber) return null;
 
                   const fontSize = conf.size || 12;
+                  // Baseline offset: approximately 0.2 of font size for typical fonts
+                  const baselineOffset = fontSize * 0.2;
 
                   return (
                     <div
@@ -115,7 +117,7 @@ export default function PDFViewer({
                         fontSize: fontSize + 'pt',
                         lineHeight: '1',
                         padding: '0',
-                        transform: 'translateY(-100%)',
+                        transform: `translateY(calc(-100% + ${baselineOffset}pt))`,
                       }}
                       onClick={(e) => e.stopPropagation()}
                     >

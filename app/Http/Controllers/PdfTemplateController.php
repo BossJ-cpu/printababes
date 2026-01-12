@@ -125,9 +125,16 @@ class PdfTemplateController extends Controller
                          $y = $config['y'] ?? 0;
                          $fontSize = $config['size'] ?? 12;
                          
-                         $pdf->SetXY($x, $y);
                          $pdf->SetFontSize($fontSize);
-                         $pdf->Write(0, $text);
+                         
+                         // Determine visual correction:
+                         // User selects Top-Left in UI.
+                         // $pdf->Text() draws from Baseline.
+                         // Standard Ascender estimate ~80% of font size.
+                         // 1pt = 0.352778mm
+                         $baselineOffset = $fontSize * 0.3528 * 0.75;
+                         
+                         $pdf->Text($x, $y + $baselineOffset, $text);
                      }
                 }
             }

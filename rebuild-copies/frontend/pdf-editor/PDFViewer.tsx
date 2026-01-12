@@ -34,8 +34,8 @@ export default function PDFViewer({ url, template, onAddField }: PDFViewerProps)
         const scaleY = 297 / rect.height;
 
         return {
-            x: Math.round(x * scaleX),
-            y: Math.round(y * scaleY)
+            x: Number((x * scaleX).toFixed(2)),
+            y: Number((y * scaleY).toFixed(2))
         };
     };
 

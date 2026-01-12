@@ -13,9 +13,10 @@ Route::get('/user', function (Request $request) {
 Route::apiResource('submissions', SubmissionController::class);
 
 Route::get('pdf-templates', [PdfTemplateController::class, 'index']);
+Route::get('pdf-templates/{key}/preview', [PdfTemplateController::class, 'preview']);
+Route::get('pdf-templates/{key}/dimensions', [PdfTemplateController::class, 'getDimensions']);
+Route::get('pdf-templates/{key}/coordinate-test', [CoordinateTestController::class, 'testCoordinate']);
 Route::get('pdf-templates/{key}', [PdfTemplateController::class, 'show']);
 Route::put('pdf-templates/{key}', [PdfTemplateController::class, 'update']);
 Route::post('pdf-templates/{key}/upload', [PdfTemplateController::class, 'upload']);
 Route::delete('pdf-templates/{key}', [PdfTemplateController::class, 'destroy']);
-Route::get('pdf-templates/{key}/preview', [PdfTemplateController::class, 'preview']);
-Route::get('pdf-templates/{key}/dimensions', [PdfTemplateController::class, 'getDimensions']);

@@ -107,6 +107,8 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
             actualRenderSize: { width: actualRenderWidth, height: actualRenderHeight },
             pageDimsMm: dims,
             usingBackendDims: !!backendDimensions?.[pageNumber],
+            backendDimAvailable: backendDimensions ? Object.keys(backendDimensions) : 'none',
+            calculatedDimAvailable: pageDims ? Object.keys(pageDims) : 'none',
             resultMm: { x: resultX, y: resultY }
         });
         
@@ -257,7 +259,6 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
                                 pageNumber={pageNumber} 
                                 renderTextLayer={false} 
                                 renderAnnotationLayer={false}
-                                width={600}
                                 onLoadSuccess={onPageLoad}
                             />
                             

@@ -33,13 +33,14 @@ class CoordinateTestController extends Controller
                 return response()->json(['error' => 'Invalid page: must be between 1 and 20'], 400);
             }
             
-            // Log the coordinates being received
+            // Log the coordinates being received with more detail
             \Illuminate\Support\Facades\Log::info("Coordinate Test Debug", [
                 'received_x' => $testX,
                 'received_y' => $testY,
                 'received_page' => $testPage,
                 'template_key' => $key,
-                'pdf_path' => $pdfPath
+                'pdf_path' => $pdfPath,
+                'request_all' => $request->all()
             ]);
             
             // Initialize FPDI with millimeters as unit (consistent with other controllers)

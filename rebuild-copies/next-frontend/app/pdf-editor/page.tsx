@@ -179,6 +179,7 @@ export default function PdfEditorPage() {
     if (!templateKey) return;
     
     try {
+      console.log('Fetching dimensions for template:', templateKey);
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/pdf-templates/${encodeURIComponent(templateKey)}/dimensions`,
         {
@@ -189,13 +190,18 @@ export default function PdfEditorPage() {
         }
       );
       
+      console.log('Dimensions API response status:', response.status);
+      
       if (response.ok) {
         const data = await response.json();
-        console.log('Backend PDF dimensions:', data);
+        console.log('Backend PDF dimensions received:', data);
         return data.dimensions;
+      } else {
+        const errorText = await response.text();
+        console.error('Failed to fetch dimensions:', response.status, errorText);
       }
     } catch (error) {
-      console.error('Failed to fetch PDF dimensions:', error);
+      console.error('Error fetching PDF dimensions:', error);
     }
     
     return null;

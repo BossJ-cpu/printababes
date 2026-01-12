@@ -146,16 +146,16 @@ class PdfTemplateController extends Controller
                         $ptToMm = 0.352778;
                         $fontSizeMm = $fontSize * $ptToMm;
                         
-                        // Use Standard Cell Layout.
-                        // We strictly align the Cell's Top-Left to the User's Top-Left coordinate.
-                        // Now that the Frontend sends high-precision (float) coordinates, 
-                        // this Box-to-Box mapping should be accurate.
+                        // Strict Box Alignment:
+                        // 1. Remove Cell Padding (cMargin) so X aligns exactly with the start of the box string
+                        $pdf->cMargin = 0;
+                        
+                        // 2. Set coordinate to Top-Left of the box
                         $pdf->SetXY($x, $y);
 
-                        // Draw Cell with exact height of the font.
-                        // Standard FPDF adds a small 1mm left-padding (cMargin) by default.
-                        // We subtract roughly 1mm from X to align the text start if needed, 
-                        // but for now we stick to raw coordinates to match the visual box container.
+                        // 3. Draw Cell with exact height of the font.
+                        // FPDF vertically centers text in the cell. With height = fontSize, the text fits tightly.
+                        // This aligns the "Box" of the PDF with the "Box" of the HTML editor.
                         $pdf->Cell(0, $fontSizeMm, $text, 0, 0, 'L');
                      }
                 }

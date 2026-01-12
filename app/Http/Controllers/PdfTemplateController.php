@@ -162,18 +162,12 @@ class PdfTemplateController extends Controller
                          
                          $pdf->SetFontSize($fontSize);
                         
-                        // Convert Font Size (Points) to Millimeters
-                        $ptToMm = 0.352778;
-                        $fontSizeMm = $fontSize * $ptToMm;
-                        
-                        // Strict Box Alignment:
-                        // Set coordinate to Top-Left of the box
+                        // Set coordinate to exact position
                         $pdf->SetXY($x, $y);
 
-                        // Draw Cell with exact height of the font.
-                        // FPDF vertically centers text in the cell. With height = fontSize, the text fits tightly.
-                        // This aligns the "Box" of the PDF with the "Box" of the HTML editor.
-                        $pdf->Cell(0, $fontSizeMm, $text, 0, 0, 'L');
+                        // Use Text instead of Cell for precise positioning
+                        // Text places text exactly at the coordinates without additional offsets
+                        $pdf->Text($x, $y, $text);
                      }
                 }
             }

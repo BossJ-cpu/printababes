@@ -69,64 +69,35 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
 
     const getCoordinates = (e: React.MouseEvent<HTMLDivElement>, pageNumber: number) => {
         const rect = e.currentTarget.getBoundingClientRect();
-        
         const dims = pageDims[pageNumber] || { width: 210, height: 297 }; // Default A4 in mm
         
-        // Find the actual PDF canvas within the container
-        const pdfCanvas = e.currentTarget.querySelector('canvas');
-        const canvasRect = pdfCanvas?.getBoundingClientRect();
+        // Get click position relative to the container
+        const clickX = e.clientX - rect.left;
+        const clickY = e.clientY - rect.top;
         
-        if (canvasRect) {
-            // Calculate click position relative to the PDF canvas, not the container
-            const x = e.clientX - canvasRect.left;
-            const y = e.clientY - canvasRect.top;
-            
-            // Calculate scale factors based on actual canvas dimensions
-            const scaleX = dims.width / canvasRect.width;
-            const scaleY = dims.height / canvasRect.height;
-            
-            // Use higher precision (1 decimal place) and ensure proper rounding
-            const mmX = parseFloat((x * scaleX).toFixed(1));
-            const mmY = parseFloat((y * scaleY).toFixed(1));
-            
-            // console.log('Coordinate calculation (canvas-based):', {
-            //     pageNumber,
-            //     globalClick: { x: e.clientX, y: e.clientY },
-            //     canvasRect: { left: canvasRect.left, top: canvasRect.top, width: canvasRect.width, height: canvasRect.height },
-            //     clickPixels: { x, y },
-            //     canvasSize: { width: canvasRect.width, height: canvasRect.height },
-            //     pageDimsMm: dims,
-            //     scaleFactors: { scaleX, scaleY },
-            //     resultMm: { x: mmX, y: mmY }
-            // });
-            
-            return { x: mmX, y: mmY };
-        } else {
-            // Fallback to container-based calculation
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            
-            const renderWidth = 600;
-            const renderHeight = renderWidth * (dims.height / dims.width);
-            
-            const scaleX = dims.width / renderWidth;
-            const scaleY = dims.height / renderHeight;
-            
-            const mmX = parseFloat((x * scaleX).toFixed(1));
-            const mmY = parseFloat((y * scaleY).toFixed(1));
-            
-            // console.log('Coordinate calculation (fallback):', {
-            //     pageNumber,
-            //     clickPixels: { x, y },
-            //     containerSize: { width: rect.width, height: rect.height },
-            //     renderSize: { width: renderWidth, height: renderHeight },
-            //     pageDimsMm: dims,
-            //     scaleFactors: { scaleX, scaleY },
-            //     resultMm: { x: mmX, y: mmY }
-            // });
-            
-            return { x: mmX, y: mmY };
-        }
+        // The PDF is rendered at a fixed width of 600px
+        // Calculate the actual rendered height based on PDF aspect ratio
+        const renderWidth = 600;
+        const renderHeight = (dims.height / dims.width) * renderWidth;
+        
+        // Convert click pixels to millimeters using the render dimensions
+        const mmX = (clickX / renderWidth) * dims.width;
+        const mmY = (clickY / renderHeight) * dims.height;
+        
+        // Round to 1 decimal place for precision
+        const resultX = parseFloat(mmX.toFixed(1));
+        const resultY = parseFloat(mmY.toFixed(1));
+        
+        // console.log('Coordinate calculation:', {
+        //     pageNumber,
+        //     clickPixels: { x: clickX, y: clickY },
+        //     renderSize: { width: renderWidth, height: renderHeight },
+        //     containerSize: { width: rect.width, height: rect.height },
+        //     pageDimsMm: dims,
+        //     resultMm: { x: resultX, y: resultY }
+        // });
+        
+        return { x: resultX, y: resultY };
     };
 
     const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>, pageNumber: number) => {
@@ -168,33 +139,32 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
     };
 
     const handleGlobalMouseMove = useCallback((e: MouseEvent) => {
-        if (!dragState.isDragging || !dragState.fieldKey) return;
+        if (!dragState.isDragging || !dragState.fieldKey || !template) return;
         
+        // Calculate mouse delta in pixels
         const deltaX = e.clientX - dragState.startX;
         const deltaY = e.clientY - dragState.startY;
         
-        // Find the page container to calculate scale
-        const pageContainer = document.querySelector(`[data-page-number="${template && Object.entries(template.fields_config).find(([key]) => key === dragState.fieldKey)?.[1]?.page || 1}"]`);
-        const canvas = pageContainer?.querySelector('canvas');
+        // Find the page container
+        const pageContainer = document.querySelector(`[data-page-number="${template.fields_config[dragState.fieldKey]?.page || 1}"]`) as HTMLElement;
+        if (!pageContainer) return;
         
-        if (canvas && template) {
-            const canvasRect = canvas.getBoundingClientRect();
-            const fieldPage = template.fields_config[dragState.fieldKey]?.page || 1;
-            const dims = pageDims[fieldPage] || { width: 210, height: 297 };
-            
-            // Convert pixel delta to millimeters
-            const scaleX = dims.width / canvasRect.width;
-            const scaleY = dims.height / canvasRect.height;
-            
-            const deltaXMm = deltaX * scaleX;
-            const deltaYMm = deltaY * scaleY;
-            
-            const newX = Math.max(0, Math.min(dims.width, dragState.initialFieldX + deltaXMm));
-            const newY = Math.max(0, Math.min(dims.height, dragState.initialFieldY + deltaYMm));
-            
-            if (onUpdateField) {
-                onUpdateField(dragState.fieldKey, parseFloat(newX.toFixed(1)), parseFloat(newY.toFixed(1)));
-            }
+        const fieldPage = template.fields_config[dragState.fieldKey]?.page || 1;
+        const dims = pageDims[fieldPage] || { width: 210, height: 297 };
+        
+        // Convert pixel delta to millimeter delta using same logic as coordinate calculation
+        const renderWidth = 600;
+        const renderHeight = (dims.height / dims.width) * renderWidth;
+        
+        const mmDeltaX = (deltaX / renderWidth) * dims.width;
+        const mmDeltaY = (deltaY / renderHeight) * dims.height;
+        
+        // Calculate new position with bounds checking
+        const newX = Math.max(0, Math.min(dims.width, dragState.initialFieldX + mmDeltaX));
+        const newY = Math.max(0, Math.min(dims.height, dragState.initialFieldY + mmDeltaY));
+        
+        if (onUpdateField) {
+            onUpdateField(dragState.fieldKey, parseFloat(newX.toFixed(1)), parseFloat(newY.toFixed(1)));
         }
     }, [dragState, template, pageDims, onUpdateField]);
 
@@ -287,28 +257,9 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
                                 const fieldPage = conf.page || 1;
                                 if (fieldPage !== pageNumber) return null;
                                 
-                                // Use the same 600px width that we use for rendering
-                                const renderWidth = 600;
-                                const renderHeight = renderWidth * (dims.height / dims.width);
-                                
-                                // Calculate pixel position on the rendered PDF
-                                const fieldXPixel = (conf.x / dims.width) * renderWidth;
-                                const fieldYPixel = (conf.y / dims.height) * renderHeight;
-                                
-                                // Convert to percentage of the container
-                                const leftPercent = (fieldXPixel / renderWidth) * 100;
-                                const topPercent = (fieldYPixel / renderHeight) * 100;
-                                
-                                // Debug coordinate positioning
-                                console.log('Field positioning debug:', {
-                                    fieldName: key,
-                                    configCoords: { x: conf.x, y: conf.y },
-                                    pageDimensions: dims,
-                                    calculatedPercent: {
-                                        left: (conf.x / dims.width) * 100,
-                                        top: (conf.y / dims.height) * 100
-                                    }
-                                });
+                                // Calculate position as percentage - same logic as coordinate calculation
+                                const leftPercent = (conf.x / dims.width) * 100;
+                                const topPercent = (conf.y / dims.height) * 100;
                                 
                                 return (
                                 <div key={key}>

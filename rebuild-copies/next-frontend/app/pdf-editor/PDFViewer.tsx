@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -91,6 +91,8 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
             
             console.log('Coordinate calculation (canvas-based):', {
                 pageNumber,
+                globalClick: { x: e.clientX, y: e.clientY },
+                canvasRect: { left: canvasRect.left, top: canvasRect.top, width: canvasRect.width, height: canvasRect.height },
                 clickPixels: { x, y },
                 canvasSize: { width: canvasRect.width, height: canvasRect.height },
                 pageDimsMm: dims,
@@ -113,15 +115,15 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
             const mmX = parseFloat((x * scaleX).toFixed(1));
             const mmY = parseFloat((y * scaleY).toFixed(1));
             
-            console.log('Coordinate calculation (fallback):', {
-                pageNumber,
-                clickPixels: { x, y },
-                containerSize: { width: rect.width, height: rect.height },
-                renderSize: { width: renderWidth, height: renderHeight },
-                pageDimsMm: dims,
-                scaleFactors: { scaleX, scaleY },
-                resultMm: { x: mmX, y: mmY }
-            });
+            // console.log('Coordinate calculation (fallback):', {
+            //     pageNumber,
+            //     clickPixels: { x, y },
+            //     containerSize: { width: rect.width, height: rect.height },
+            //     renderSize: { width: renderWidth, height: renderHeight },
+            //     pageDimsMm: dims,
+            //     scaleFactors: { scaleX, scaleY },
+            //     resultMm: { x: mmX, y: mmY }
+            // });
             
             return { x: mmX, y: mmY };
         }
@@ -165,7 +167,7 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
         document.addEventListener('mouseup', handleGlobalMouseUp);
     };
 
-    const handleGlobalMouseMove = (e: MouseEvent) => {
+    const handleGlobalMouseMove = useCallback((e: MouseEvent) => {
         if (!dragState.isDragging || !dragState.fieldKey) return;
         
         const deltaX = e.clientX - dragState.startX;
@@ -194,9 +196,9 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
                 onUpdateField(dragState.fieldKey, parseFloat(newX.toFixed(1)), parseFloat(newY.toFixed(1)));
             }
         }
-    };
+    }, [dragState, template, pageDims, onUpdateField]);
 
-    const handleGlobalMouseUp = () => {
+    const handleGlobalMouseUp = useCallback(() => {
         setDragState({
             isDragging: false,
             fieldKey: null,
@@ -209,7 +211,7 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
         // Remove global event listeners
         document.removeEventListener('mousemove', handleGlobalMouseMove);
         document.removeEventListener('mouseup', handleGlobalMouseUp);
-    };
+    }, [handleGlobalMouseMove]);
 
     // Cleanup effect for drag listeners
     useEffect(() => {
@@ -236,7 +238,7 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
                         <div 
                             key={pageNumber} 
                             data-page-number={pageNumber}
-                            style={{ position: 'relative', backgroundColor: 'white', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)', cursor: coordinateTestMode ? 'crosshair' : 'default', marginBottom: '1rem' }}
+                            style={{ position: 'relative', backgroundColor: 'white', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)', cursor: 'crosshair', marginBottom: '1rem' }}
                             onMouseMove={(e) => handleMouseMove(e, pageNumber)} 
                             onMouseLeave={() => setHoverCoords(null)}
                             onClick={(e) => handlePageClick(e, pageNumber)}

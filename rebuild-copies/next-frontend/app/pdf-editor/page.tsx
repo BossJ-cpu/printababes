@@ -358,7 +358,7 @@ export default function PdfEditorPage() {
 
      try {
        setPreviewError(null);
-       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pdf-templates/${keyToUse}/preview?${params.toString()}`, {
+       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pdf-templates/${encodeURIComponent(keyToUse)}/preview?${params.toString()}`, {
            headers: {
                'Bypass-Tunnel-Reminder': 'true',
                'ngrok-skip-browser-warning': 'true'
@@ -500,10 +500,12 @@ export default function PdfEditorPage() {
   };
 
   const handleCoordinateTest = async (x: number, y: number, pageNumber: number) => {
+    console.log('Sending coordinate test:', { x, y, pageNumber, templateKey: template.key });
+    
     try {
       // Generate test PDF with crosshair at clicked coordinates
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/pdf-templates/${template.key}/coordinate-test?x=${x}&y=${y}&page=${pageNumber}`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/pdf-templates/${encodeURIComponent(template.key)}/coordinate-test?x=${x}&y=${y}&page=${pageNumber}`,
         {
           headers: {
             'Bypass-Tunnel-Reminder': 'true',

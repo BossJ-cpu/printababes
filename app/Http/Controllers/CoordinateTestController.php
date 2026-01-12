@@ -30,6 +30,14 @@ class CoordinateTestController extends Controller
             $testY = floatval($request->input('y', 50)); // Default to 50mm
             $testPage = intval($request->input('page', 1)); // Default to page 1
             
+            // Log the coordinates being received
+            \Illuminate\Support\Facades\Log::info("Coordinate Test Debug", [
+                'received_x' => $testX,
+                'received_y' => $testY,
+                'received_page' => $testPage,
+                'template_key' => $key
+            ]);
+            
             for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {
                 $templateId = $pdf->importPage($pageNo);
                 $size = $pdf->getTemplateSize($templateId);

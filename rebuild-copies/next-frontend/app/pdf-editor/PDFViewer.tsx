@@ -51,32 +51,62 @@ export default function PDFViewer({ url, template, onAddField, coordinateTestMod
 
     const getCoordinates = (e: React.MouseEvent<HTMLDivElement>, pageNumber: number) => {
         const rect = e.currentTarget.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
         
         const dims = pageDims[pageNumber] || { width: 210, height: 297 }; // Default A4 in mm
         
-        // Calculate scale factors with higher precision
-        const scaleX = dims.width / rect.width;
-        const scaleY = dims.height / rect.height;
+        // Find the actual PDF canvas within the container
+        const pdfCanvas = e.currentTarget.querySelector('canvas');
+        const canvasRect = pdfCanvas?.getBoundingClientRect();
         
-        // Use higher precision (1 decimal place) and ensure proper rounding
-        const mmX = parseFloat((x * scaleX).toFixed(1));
-        const mmY = parseFloat((y * scaleY).toFixed(1));
-        
-        console.log('Coordinate calculation:', {
-            pageNumber,
-            clickPixels: { x, y },
-            rectSize: { width: rect.width, height: rect.height },
-            pageDimsMm: dims,
-            scaleFactors: { scaleX, scaleY },
-            resultMm: { x: mmX, y: mmY }
-        });
-
-        return {
-            x: mmX,
-            y: mmY
-        };
+        if (canvasRect) {
+            // Calculate click position relative to the PDF canvas, not the container
+            const x = e.clientX - canvasRect.left;
+            const y = e.clientY - canvasRect.top;
+            
+            // Calculate scale factors based on actual canvas dimensions
+            const scaleX = dims.width / canvasRect.width;
+            const scaleY = dims.height / canvasRect.height;
+            
+            // Use higher precision (1 decimal place) and ensure proper rounding
+            const mmX = parseFloat((x * scaleX).toFixed(1));
+            const mmY = parseFloat((y * scaleY).toFixed(1));
+            
+            console.log('Coordinate calculation (canvas-based):', {
+                pageNumber,
+                clickPixels: { x, y },
+                canvasSize: { width: canvasRect.width, height: canvasRect.height },
+                pageDimsMm: dims,
+                scaleFactors: { scaleX, scaleY },
+                resultMm: { x: mmX, y: mmY }
+            });
+            
+            return { x: mmX, y: mmY };
+        } else {
+            // Fallback to container-based calculation
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            const renderWidth = 600;
+            const renderHeight = renderWidth * (dims.height / dims.width);
+            
+            const scaleX = dims.width / renderWidth;
+            const scaleY = dims.height / renderHeight;
+            
+            const mmX = parseFloat((x * scaleX).toFixed(1));
+            const mmY = parseFloat((y * scaleY).toFixed(1));
+            
+            console.log('Coordinate calculation (fallback):', {
+                pageNumber,
+                clickPixels: { x, y },
+                containerSize: { width: rect.width, height: rect.height },
+                renderSize: { width: renderWidth, height: renderHeight },
+                pageDimsMm: dims,
+                scaleFactors: { scaleX, scaleY },
+                resultMm: { x: mmX, y: mmY }
+            });
+            
+            return { x: mmX, y: mmY };
+        }
     };
 
     const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>, pageNumber: number) => {

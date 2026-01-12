@@ -198,21 +198,6 @@ export default function HomePage() {
                 />
               </div>
 
-              <div>
-                <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">
-                  Message (Optional)
-                </label>
-                <textarea
-                  id="message"
-                  name="message"
-                  rows={3}
-                  value={formData.message}
-                  onChange={(e) => setFormData({...formData, message: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all duration-200 resize-none"
-                  placeholder="Enter an optional message"
-                />
-              </div>
-
               <button
                 type="submit"
                 disabled={submissionLoading}

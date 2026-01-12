@@ -102,7 +102,7 @@ export default function PDFViewer({ url, template, onAddField }: PDFViewerProps)
                                     style={{
                                         left: (conf.x / 210) * 100 + '%',
                                         top: (conf.y / 297) * 100 + '%',
-                                        transform: 'translateY(-50%)' 
+                                        // transform: 'translateY(-50%)' // Removed to match backend "Top-Left" alignment
                                     }}
                                     onClick={(e) => e.stopPropagation()} // Prevent adding new field when clicking existing
                                 >

@@ -89,16 +89,16 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
             const mmX = parseFloat((x * scaleX).toFixed(1));
             const mmY = parseFloat((y * scaleY).toFixed(1));
             
-            console.log('Coordinate calculation (canvas-based):', {
-                pageNumber,
-                globalClick: { x: e.clientX, y: e.clientY },
-                canvasRect: { left: canvasRect.left, top: canvasRect.top, width: canvasRect.width, height: canvasRect.height },
-                clickPixels: { x, y },
-                canvasSize: { width: canvasRect.width, height: canvasRect.height },
-                pageDimsMm: dims,
-                scaleFactors: { scaleX, scaleY },
-                resultMm: { x: mmX, y: mmY }
-            });
+            // console.log('Coordinate calculation (canvas-based):', {
+            //     pageNumber,
+            //     globalClick: { x: e.clientX, y: e.clientY },
+            //     canvasRect: { left: canvasRect.left, top: canvasRect.top, width: canvasRect.width, height: canvasRect.height },
+            //     clickPixels: { x, y },
+            //     canvasSize: { width: canvasRect.width, height: canvasRect.height },
+            //     pageDimsMm: dims,
+            //     scaleFactors: { scaleX, scaleY },
+            //     resultMm: { x: mmX, y: mmY }
+            // });
             
             return { x: mmX, y: mmY };
         } else {
@@ -287,6 +287,18 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
                                 const fieldPage = conf.page || 1;
                                 if (fieldPage !== pageNumber) return null;
                                 
+                                // Use the same 600px width that we use for rendering
+                                const renderWidth = 600;
+                                const renderHeight = renderWidth * (dims.height / dims.width);
+                                
+                                // Calculate pixel position on the rendered PDF
+                                const fieldXPixel = (conf.x / dims.width) * renderWidth;
+                                const fieldYPixel = (conf.y / dims.height) * renderHeight;
+                                
+                                // Convert to percentage of the container
+                                const leftPercent = (fieldXPixel / renderWidth) * 100;
+                                const topPercent = (fieldYPixel / renderHeight) * 100;
+                                
                                 // Debug coordinate positioning
                                 console.log('Field positioning debug:', {
                                     fieldName: key,
@@ -311,8 +323,8 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
                                             lineHeight: '1.2',
                                             fontWeight: 'bold',
                                             padding: '2px 4px',
-                                            left: `${(conf.x / dims.width) * 100}%`,
-                                            top: `${(conf.y / dims.height) * 100}%`,
+                                            left: `${leftPercent}%`,
+                                            top: `${topPercent}%`,
                                             cursor: dragState.isDragging && dragState.fieldKey === key ? 'grabbing' : 'grab',
                                             borderRadius: '3px',
                                             minWidth: '60px',
@@ -343,8 +355,8 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
                                     {/* Precision Crosshair Marker */}
                                     <div style={{
                                         position: 'absolute',
-                                        left: `${(conf.x / dims.width) * 100}%`,
-                                        top: `${(conf.y / dims.height) * 100}%`,
+                                        left: `${leftPercent}%`,
+                                        top: `${topPercent}%`,
                                         width: '16px',
                                         height: '16px',
                                         transform: 'translate(-50%, -50%)',

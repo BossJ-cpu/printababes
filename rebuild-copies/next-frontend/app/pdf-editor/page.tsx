@@ -20,7 +20,7 @@ type TemplateConfig = {
   file_path?: string;
 };
 
-// Subcomponent: Field Row with Modern Design
+// Subcomponent: Field Row with Optimized Design
 const FieldRow: React.FC<{ 
   fieldName: string;
   config: FieldConfig;
@@ -55,18 +55,18 @@ const FieldRow: React.FC<{
     };
 
     return (
-        <div className="relative p-4 bg-gradient-to-r from-gray-50 to-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-200 group">
+        <div className="relative p-3 bg-white border border-gray-200 rounded-md shadow-sm hover:shadow-md transition-all duration-200 group">
             <button 
                 onClick={() => onRemove(fieldName)}
-                className="absolute top-3 right-3 w-6 h-6 bg-red-100 hover:bg-red-200 text-red-600 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-200 opacity-0 group-hover:opacity-100"
+                className="absolute top-2 right-2 w-5 h-5 bg-red-100 hover:bg-red-200 text-red-600 rounded text-xs font-bold transition-all duration-200 opacity-0 group-hover:opacity-100"
                 title="Remove field"
             >
                 ×
             </button>
 
-            <div className="mb-4">
+            <div className="mb-3">
                 <label htmlFor={`field-name-${fieldName}`} className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
-                  🏷️ Field Name
+                  Field Name
                 </label>
                 <input 
                     id={`field-name-${fieldName}`}
@@ -76,15 +76,15 @@ const FieldRow: React.FC<{
                     onChange={(e) => setTempName(e.target.value)}
                     onBlur={handleBlur}
                     onKeyDown={handleKeyDown}
-                    className="w-full text-lg font-semibold text-blue-700 bg-transparent border-0 border-b-2 border-dashed border-gray-300 focus:border-blue-500 focus:outline-none px-0 py-1 transition-colors duration-200"
+                    className="w-full text-base font-semibold text-blue-700 bg-transparent border-0 border-b border-dashed border-gray-300 focus:border-blue-500 focus:outline-none px-0 py-1 transition-colors duration-200"
                     placeholder="Field name..."
                 />
             </div>
             
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2 mb-3">
                 <div>
                     <label htmlFor={`page-${fieldName}`} className="block text-xs font-medium text-gray-600 mb-1">
-                      📄 Page
+                      Page
                     </label>
                     <input
                         id={`page-${fieldName}`}
@@ -92,13 +92,13 @@ const FieldRow: React.FC<{
                         type="number"
                         value={config.page || 1}
                         onChange={(e) => onUpdate(fieldName, 'page', Number(e.target.value))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-medium"
+                        className="w-full px-2 py-1 border border-gray-300 rounded text-sm font-medium focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                         min="1"
                     />
                 </div>
                 <div>
                     <label htmlFor={`size-${fieldName}`} className="block text-xs font-medium text-gray-600 mb-1">
-                      🔤 Font Size
+                      Font Size
                     </label>
                     <input
                         id={`size-${fieldName}`}
@@ -106,17 +106,17 @@ const FieldRow: React.FC<{
                         type="number"
                         value={config.size || 12}
                         onChange={(e) => onUpdate(fieldName, 'size', Number(e.target.value))}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-medium"
+                        className="w-full px-2 py-1 border border-gray-300 rounded text-sm font-medium focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                         min="6"
                         max="72"
                     />
                 </div>
             </div>
             
-            {/* Enhanced Coordinate Display */}
-            <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            {/* Coordinate Display */}
+            <div className="p-2 bg-blue-50 border border-blue-200 rounded">
                 <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-semibold text-blue-700 uppercase tracking-wide">📍 Coordinates (mm)</span>
+                    <span className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Coordinates (mm)</span>
                     <div className="text-xs text-blue-600 font-mono bg-blue-100 px-2 py-1 rounded">
                         ({config.x}, {config.y})
                     </div>
@@ -132,7 +132,7 @@ const FieldRow: React.FC<{
                             type="number"
                             value={config.x}
                             onChange={(e) => onUpdate(fieldName, 'x', Number(e.target.value))}
-                            className="w-full px-2 py-1.5 border border-blue-300 rounded text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center"
+                            className="w-full px-2 py-1 border border-blue-300 rounded text-sm font-mono focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-center"
                             step="0.1"
                         />
                     </div>
@@ -146,7 +146,7 @@ const FieldRow: React.FC<{
                             type="number"
                             value={config.y}
                             onChange={(e) => onUpdate(fieldName, 'y', Number(e.target.value))}
-                            className="w-full px-2 py-1.5 border border-blue-300 rounded text-sm font-mono focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-center"
+                            className="w-full px-2 py-1 border border-blue-300 rounded text-sm font-mono focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-center"
                             step="0.1"
                         />
                     </div>
@@ -520,40 +520,37 @@ export default function PdfEditorPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="max-w-full mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">PDF Template Editor</h1>
+              <h1 className="text-2xl font-bold text-gray-900">PDF Template Editor</h1>
               <p className="text-gray-600 mt-1">Create and manage PDF field templates</p>
             </div>
             <Link
               href="/"
               className="inline-flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors duration-200"
             >
-              <svg className="mr-2 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
               Back to Home
             </Link>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid lg:grid-cols-3 gap-8 h-[calc(100vh-200px)]">
+      <div className="max-w-full mx-auto px-6 py-4">
+        <div className="grid grid-cols-12 gap-6 h-[calc(100vh-140px)]">
           
           {/* Sidebar Editor */}
-          <div className="lg:col-span-1 bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
-            <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
-              <h2 className="text-xl font-semibold text-gray-800">Template Configuration</h2>
+          <div className="col-span-4 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+            <div className="p-4 border-b border-gray-200 bg-gray-50">
+              <h2 className="text-lg font-semibold text-gray-800">Template Configuration</h2>
               <p className="text-sm text-gray-600 mt-1">Configure fields and coordinates</p>
             </div>
             
-            <div className="p-6 overflow-y-auto h-full">
+            <div className="p-4 overflow-y-auto h-full">
               {/* Profile Selection */}
-              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                 <label htmlFor="profile-select" className="block text-sm font-semibold text-blue-900 mb-2">
-                  📋 Select Existing Template
+                  Select Existing Template
                 </label>
                 <select 
                   id="profile-select"
@@ -566,7 +563,7 @@ export default function PdfEditorPage() {
                           loadProfile(e.target.value);
                       }
                   }}
-                  className="w-full px-4 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                  className="w-full px-3 py-2 border border-blue-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-sm"
                 >
                   <option value="">-- Create New Template --</option>
                   {profiles.map(p => (
@@ -576,9 +573,9 @@ export default function PdfEditorPage() {
               </div>
 
               {/* Template Name Input */}
-              <div className="mb-6">
+              <div className="mb-4">
                 <label htmlFor="profile-key" className="block text-sm font-semibold text-gray-700 mb-2">
-                  🏷️ Template Name
+                  Template Name
                 </label>
                 <input 
                   id="profile-key"
@@ -586,8 +583,8 @@ export default function PdfEditorPage() {
                   type="text"
                   value={template.key}
                   onChange={(e) => setTemplate({ ...template, key: e.target.value })}
-                  placeholder="Enter template name (e.g., 'certificate', 'form')"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent font-medium"
+                  placeholder="Enter template name (e.g. certificate, form)"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-gray-500 focus:border-transparent font-medium text-sm"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   Change this to create or edit a different template.
@@ -595,9 +592,9 @@ export default function PdfEditorPage() {
               </div>
 
               {/* PDF Upload */}
-              <div className="mb-6 p-4 border-2 border-dashed border-gray-300 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors duration-200">
+              <div className="mb-4 p-3 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50">
                 <label htmlFor="pdf-upload" className="block text-sm font-semibold text-gray-700 mb-2">
-                  📁 Upload PDF Template
+                  Upload PDF Template
                 </label>
                 <input 
                   id="pdf-upload"
@@ -605,7 +602,7 @@ export default function PdfEditorPage() {
                   type="file" 
                   accept="application/pdf"
                   onChange={handleFileUpload}
-                  className="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-gray-900 file:text-white hover:file:bg-gray-800 transition-colors duration-200"
+                  className="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:font-medium file:bg-gray-900 file:text-white hover:file:bg-gray-800"
                 />
                 <p className="text-xs text-gray-500 mt-2">
                   Upload your PDF template file. After upload, click Preview to view it.
@@ -613,13 +610,13 @@ export default function PdfEditorPage() {
               </div>
               
               {/* Fields Configuration */}
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                  🎯 Field Coordinates
+              <div className="mb-4">
+                <h3 className="text-base font-semibold text-gray-800 mb-3 flex items-center">
+                  Field Coordinates
                   <span className="ml-2 text-sm font-normal text-gray-500">({Object.keys(template.fields_config || {}).length})</span>
                 </h3>
                 
-                <div className="space-y-3 max-h-96 overflow-y-auto">
+                <div className="space-y-2 max-h-80 overflow-y-auto">
                   {(Object.entries(template.fields_config || {}) as Array<[string, FieldConfig]>).map(([fieldName, config]) => (
                       <FieldRow 
                         key={fieldName}
@@ -632,9 +629,9 @@ export default function PdfEditorPage() {
                   ))}
                   
                   {Object.keys(template.fields_config || {}).length === 0 && (
-                      <div className="text-center py-12 px-4">
-                        <div className="text-6xl mb-4">📄</div>
-                        <h4 className="text-lg font-medium text-gray-800 mb-2">No fields configured</h4>
+                      <div className="text-center py-8 px-4">
+                        <div className="text-4xl mb-3">📄</div>
+                        <h4 className="text-base font-medium text-gray-800 mb-2">No fields configured</h4>
                         <p className="text-sm text-gray-500">Click anywhere on the PDF preview to add a field</p>
                       </div>
                   )}
@@ -642,26 +639,26 @@ export default function PdfEditorPage() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex flex-col gap-3 pt-6 border-t border-gray-200">
+              <div className="flex flex-col gap-2 pt-4 border-t border-gray-200">
                 <button
                   onClick={handleSave}
                   disabled={saving || !template.key}
-                  className={`w-full py-3 px-4 rounded-lg font-semibold transition-all duration-200 ${
+                  className={`w-full py-2 px-3 rounded-md font-semibold text-sm transition-all duration-200 ${
                     saving || !template.key
                       ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      : 'bg-gray-900 text-white hover:bg-gray-800 shadow-lg hover:shadow-xl'
+                      : 'bg-gray-900 text-white hover:bg-gray-800'
                   }`}
                 >
                   {saving ? (
                     <span className="flex items-center justify-center">
-                      <svg className="animate-spin -ml-1 mr-3 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                       </svg>
                       Saving...
                     </span>
                   ) : (
-                    '💾 Save Template'
+                    'Save Template'
                   )}
                 </button>
                 
@@ -669,26 +666,26 @@ export default function PdfEditorPage() {
                   <button
                     onClick={() => handlePreview()}
                     disabled={!template.key}
-                    className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all duration-200 ${
+                    className={`flex-1 py-2 px-3 rounded-md font-medium text-sm transition-all duration-200 ${
                       !template.key
                         ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                         : 'bg-green-600 text-white hover:bg-green-700'
                     }`}
                   >
-                    🔍 Preview
+                    Preview
                   </button>
                   
                   {profiles.some(p => p.key === template.key) && (
                      <button
                         onClick={handleDelete}
                         disabled={saving}
-                        className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                        className={`px-3 py-2 rounded-md font-medium text-sm transition-all duration-200 ${
                           saving
                             ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                             : 'bg-red-600 text-white hover:bg-red-700'
                         }`}
                      >
-                        🗑️
+                        Delete
                      </button>
                   )}
                 </div>
@@ -697,34 +694,34 @@ export default function PdfEditorPage() {
           </div>
 
           {/* PDF Preview */}
-          <div className="lg:col-span-2 bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
-            <div className="p-6 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
-              <h2 className="text-xl font-semibold text-gray-800">PDF Preview</h2>
+          <div className="col-span-8 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
+            <div className="p-4 border-b border-gray-200 bg-gray-50">
+              <h2 className="text-lg font-semibold text-gray-800">PDF Preview</h2>
               <p className="text-sm text-gray-600 mt-1">Click on the PDF to add field coordinates</p>
             </div>
             
-            <div className="p-6 h-full bg-gray-50 overflow-y-auto">
-              <div className="flex items-center justify-center h-full">
+            <div className="p-4 h-full bg-gray-50 overflow-auto">
+              <div className="flex items-start justify-center h-full min-h-96">
                 {previewError ? (
-                    <div className="text-center">
-                        <div className="text-6xl mb-4">⚠️</div>
-                        <h4 className="text-lg font-semibold text-orange-800 mb-2">Preview Error</h4>
-                        <p className="text-orange-600 max-w-md">{previewError}</p>
+                    <div className="text-center mt-20">
+                        <div className="text-4xl mb-3">⚠️</div>
+                        <h4 className="text-base font-semibold text-orange-800 mb-2">Preview Error</h4>
+                        <p className="text-orange-600 max-w-md text-sm">{previewError}</p>
                         {!template.file_path && (
                           <p className="text-sm text-gray-500 mt-4">
-                            💡 Upload a PDF template to get started
+                            Upload a PDF template to get started
                           </p>
                         )}
                     </div>
                 ) : previewUrl ? (
-                    <div className="w-full max-w-4xl">
+                    <div className="w-full h-full">
                       <PDFViewer url={previewUrl} template={template} onAddField={handleAddField} />
                     </div>
                 ) : (
-                    <div className="text-center">
-                        <div className="text-6xl mb-4">📄</div>
-                        <h4 className="text-lg font-medium text-gray-800 mb-2">No Preview Available</h4>
-                        <p className="text-gray-500">Click "Preview" button to view your PDF template</p>
+                    <div className="text-center mt-20">
+                        <div className="text-4xl mb-3">📄</div>
+                        <h4 className="text-base font-medium text-gray-800 mb-2">No Preview Available</h4>
+                        <p className="text-gray-500 text-sm">Click "Preview" button to view your PDF template</p>
                     </div>
                 )}
               </div>
@@ -737,29 +734,19 @@ export default function PdfEditorPage() {
       {showNotification && (
         <div className="fixed inset-0 flex items-center justify-center z-50 px-4">
           <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={() => setShowNotification(false)}></div>
-          <div className="bg-white rounded-xl p-6 shadow-2xl transform transition-all animate-bounce-in relative z-10 max-w-md w-full border border-gray-200">
+          <div className="bg-white rounded-lg p-6 shadow-2xl transform transition-all animate-bounce-in relative z-10 max-w-md w-full border border-gray-200">
             <div className="flex items-start mb-4">
-              {notificationType === 'success' ? (
-                <div className="flex-shrink-0 w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-              ) : notificationType === 'error' ? (
-                <div className="flex-shrink-0 w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
-                  <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </div>
-              ) : (
-                <div className="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-              )}
+              <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                notificationType === 'success' ? 'bg-green-100' :
+                notificationType === 'error' ? 'bg-red-100' : 'bg-blue-100'
+              }`}>
+                <div className={`w-4 h-4 rounded-full ${
+                  notificationType === 'success' ? 'bg-green-500' :
+                  notificationType === 'error' ? 'bg-red-500' : 'bg-blue-500'
+                }`}></div>
+              </div>
               <div className="ml-4 flex-1">
-                <h3 className={`text-lg font-semibold ${
+                <h3 className={`text-base font-semibold ${
                   notificationType === 'success' ? 'text-green-900' :
                   notificationType === 'error' ? 'text-red-900' : 'text-blue-900'
                 }`}>
@@ -772,7 +759,7 @@ export default function PdfEditorPage() {
             <div className="flex justify-end">
               <button
                 onClick={() => setShowNotification(false)}
-                className="px-4 py-2 bg-gray-900 text-white text-sm rounded-lg hover:bg-gray-800 transition-colors duration-200 font-medium"
+                className="px-4 py-2 bg-gray-900 text-white text-sm rounded-md hover:bg-gray-800 transition-colors duration-200 font-medium"
               >
                 Got it
               </button>

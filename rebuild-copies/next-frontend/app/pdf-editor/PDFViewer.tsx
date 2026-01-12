@@ -27,8 +27,8 @@ export default function PDFViewer({ url, template, onAddField }: PDFViewerProps)
     const [hoverCoords, setHoverCoords] = useState<{x: number, y: number} | null>(null);
 
     const onPageLoad = (page: any) => {
-        // page.originalWidth/Height are in points (1/72 inch).
-        // Convert to mm to match Backend's default unit (mm).
+        // page.originalWidth/Height are in points (1/72 inch)
+        // Convert to mm: points * (25.4 / 72)
         const toMm = 25.4 / 72;
         setPageDims(prev => ({
             ...prev,
@@ -50,8 +50,8 @@ export default function PDFViewer({ url, template, onAddField }: PDFViewerProps)
         const scaleY = dims.height / rect.height;
 
         return {
-            x: Number((x * scaleX).toFixed(2)),
-            y: Number((y * scaleY).toFixed(2))
+            x: Math.round(x * scaleX),
+            y: Math.round(y * scaleY)
         };
     };
 

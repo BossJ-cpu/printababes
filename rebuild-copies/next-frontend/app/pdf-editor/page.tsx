@@ -336,12 +336,18 @@ export default function PdfEditorPage() {
        });
        
        if (!res.ok) {
+           const errorData = await res.json().catch(() => ({})); // Try to read JSON error body
+           
            if (res.status === 404) {
                console.warn("Preview 404 - File likely missing.");
-               setPreviewError("PDF file not found for this profile. Please upload a new one.");
+               setPreviewError("PDF file not found for this profile. Please upload a new one. (404)");
+           } else if (res.status === 422) {
+               const message = errorData.error || "Unprocessable Entity";
+               console.warn("Preview 422 - Validation/Processing Error:", message);
+               setPreviewError(`Preview Error: ${message}`);
            } else {
                console.error("Preview failed with status:", res.status);
-               setPreviewError("Failed to generate preview.");
+               setPreviewError(`Failed to generate preview. (Status: ${res.status})`);
            }
            setPreviewUrl(null);
            return;

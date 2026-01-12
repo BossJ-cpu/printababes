@@ -6,8 +6,8 @@ import Link from 'next/link';
 type Submission = {
   id: number;
   name: string;
+  age: string;
   email: string;
-  message: string;
   created_at: string;
 };
 
@@ -20,8 +20,8 @@ export default function HomePage() {
   // Data Submission State
   const [formData, setFormData] = useState({
     name: '',
-    email: '',
-    message: ''
+    age: '',
+    email: ''
   });
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [submissionLoading, setSubmissionLoading] = useState(false);
@@ -75,7 +75,7 @@ export default function HomePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.email) {
+    if (!formData.name || !formData.age || !formData.email) {
       setSubmissionMessage('Please fill in all required fields.');
       return;
     }
@@ -94,7 +94,7 @@ export default function HomePage() {
 
       if (res.ok) {
         setSubmissionMessage('Data submitted successfully!');
-        setFormData({ name: '', email: '', message: '' });
+        setFormData({ name: '', age: '', email: '' });
         fetchSubmissions(); // Refresh the list
       } else {
         setSubmissionMessage('Error submitting data. Please try again.');
@@ -134,9 +134,6 @@ export default function HomePage() {
           <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6 animate-fade-in">
             PDF Generator
           </h1>
-          <p className="text-xl md:text-2xl text-gray-600 mb-8 max-w-3xl mx-auto animate-slide-up">
-            Streamline your workflow with our dual-purpose platform - submit data and generate beautiful PDFs in one place
-          </p>
         </div>
       </div>
 
@@ -162,10 +159,9 @@ export default function HomePage() {
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
               <h3 className="font-semibold text-gray-800 mb-2">How to use:</h3>
               <ul className="text-sm text-gray-700 space-y-1">
-                <li>1. Fill in your name and email (required)</li>
-                <li>2. Add an optional message</li>
-                <li>3. Submit to save your data</li>
-                <li>4. Your submission will appear in the list below</li>
+                <li>1. Fill in your name, age, and email (required)</li>
+                <li>2. Submit to save your data</li>
+                <li>3. Your submission will appear in the list below</li>
               </ul>
             </div>
 
@@ -253,7 +249,7 @@ export default function HomePage() {
                 {submissions.length > 0 ? (
                   submissions.map(submission => (
                     <div key={submission.id} className="bg-gray-50 p-3 rounded-lg text-sm">
-                      <div className="font-medium text-gray-800">{submission.name}</div>
+                      <div className="font-medium text-gray-800">{submission.name} - Age {submission.age}</div>
                       <div className="text-gray-600">{submission.email}</div>
                     </div>
                   ))
@@ -385,42 +381,6 @@ export default function HomePage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
               </Link>
-            </div>
-          </div>
-        </div>
-
-        {/* Feature Showcase */}
-        <div className="mt-16 text-center">
-          <h2 className="text-3xl font-bold text-gray-900 mb-8">Why Choose Our Platform?</h2>
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-              <div className="w-12 h-12 bg-gray-100 border border-gray-200 rounded-lg mx-auto mb-4 flex items-center justify-center">
-                <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold mb-2 text-gray-900">Lightning Fast</h3>
-              <p className="text-gray-600">Generate professional PDFs in seconds with our optimized processing engine.</p>
-            </div>
-
-            <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-              <div className="w-12 h-12 bg-gray-100 border border-gray-200 rounded-lg mx-auto mb-4 flex items-center justify-center">
-                <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold mb-2 text-gray-900">Easy to Use</h3>
-              <p className="text-gray-600">Intuitive interface designed for both beginners and power users.</p>
-            </div>
-
-            <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-              <div className="w-12 h-12 bg-gray-100 border border-gray-200 rounded-lg mx-auto mb-4 flex items-center justify-center">
-                <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-semibold mb-2 text-gray-900">Fully Customizable</h3>
-              <p className="text-gray-600">Create templates that match your exact requirements and branding.</p>
             </div>
           </div>
         </div>

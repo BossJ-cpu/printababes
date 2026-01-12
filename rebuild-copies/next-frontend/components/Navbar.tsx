@@ -28,12 +28,6 @@ export default function Navbar() {
                 Home
               </Link>
               <Link
-                href="/simple-form"
-                className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200"
-              >
-                Data Form
-              </Link>
-              <Link
                 href="/pdf-editor"
                 className="text-gray-700 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium transition-colors duration-200"
               >

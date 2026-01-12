@@ -147,13 +147,9 @@ class PdfTemplateController extends Controller
                         $ptToMm = 0.352778;
                         $fontSizeMm = $fontSize * $ptToMm;
                         
-                        // Frontend editor places a box at (X,Y) with padding.
-                        // We align FPDF Cell to this.
-                        // We add a small Y buffer (0.5mm) to match the visual 'padding' of the HTML box.
-                        $pdf->SetXY($x, $y + 0.5);
+                        $pdf->SetXY($x, $y);
 
                         // Use Cell with correct height (in MM).
-                        // Previous implementation erroneously used Points as Height (12mm vs 4mm), causing offsets.
                         $pdf->Cell(0, $fontSizeMm, $text, 0, 0, 'L');
                      }
                 }

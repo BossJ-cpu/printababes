@@ -211,6 +211,14 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
         document.removeEventListener('mouseup', handleGlobalMouseUp);
     };
 
+    // Cleanup effect for drag listeners
+    useEffect(() => {
+        return () => {
+            document.removeEventListener('mousemove', handleGlobalMouseMove);
+            document.removeEventListener('mouseup', handleGlobalMouseUp);
+        };
+    }, []);
+
     return (
         <div style={{ boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', backgroundColor: '#f3f4f6' }}>
             <Document 

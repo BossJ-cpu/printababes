@@ -540,13 +540,14 @@ export default function PdfEditorPage() {
         <div className="grid grid-cols-12 gap-6 h-[calc(100vh-140px)]">
           
           {/* Sidebar Editor */}
-          <div className="col-span-4 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
-            <div className="p-4 border-b border-gray-200 bg-gray-50">
+          <div className="col-span-4 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden flex flex-col">
+            <div className="p-4 border-b border-gray-200 bg-gray-50 flex-shrink-0">
               <h2 className="text-lg font-semibold text-gray-800">Template Configuration</h2>
               <p className="text-sm text-gray-600 mt-1">Configure fields and coordinates</p>
             </div>
             
-            <div className="p-4 overflow-y-auto h-full">
+            {/* Scrollable Content Area */}
+            <div className="flex-1 p-4 overflow-y-auto" style={{ height: 'calc(100vh - 280px)' }}>
               {/* Profile Selection */}
               <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                 <label htmlFor="profile-select" className="block text-sm font-semibold text-blue-900 mb-2">
@@ -616,7 +617,7 @@ export default function PdfEditorPage() {
                   <span className="ml-2 text-sm font-normal text-gray-500">({Object.keys(template.fields_config || {}).length})</span>
                 </h3>
                 
-                <div className="space-y-2 max-h-80 overflow-y-auto">
+                <div className="space-y-2">
                   {(Object.entries(template.fields_config || {}) as Array<[string, FieldConfig]>).map(([fieldName, config]) => (
                       <FieldRow 
                         key={fieldName}
@@ -637,16 +638,18 @@ export default function PdfEditorPage() {
                   )}
                 </div>
               </div>
+            </div>
 
-              {/* Action Buttons */}
-              <div className="flex flex-col gap-2 pt-4 border-t border-gray-200">
+            {/* Sticky Footer with Action Buttons */}
+            <div className="flex-shrink-0 p-4 bg-white border-t border-gray-200">
+              <div className="flex flex-col gap-2">
                 <button
                   onClick={handleSave}
                   disabled={saving || !template.key}
-                  className={`w-full py-2 px-3 rounded-md font-semibold text-sm transition-all duration-200 ${
+                  className={`w-full py-3 px-4 rounded-md font-semibold text-sm transition-all duration-200 ${
                     saving || !template.key
                       ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      : 'bg-gray-900 text-white hover:bg-gray-800'
+                      : 'bg-gray-900 text-white hover:bg-gray-800 shadow-md'
                   }`}
                 >
                   {saving ? (
@@ -679,7 +682,7 @@ export default function PdfEditorPage() {
                      <button
                         onClick={handleDelete}
                         disabled={saving}
-                        className={`px-3 py-2 rounded-md font-medium text-sm transition-all duration-200 ${
+                        className={`px-4 py-2 rounded-md font-medium text-sm transition-all duration-200 ${
                           saving
                             ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                             : 'bg-red-600 text-white hover:bg-red-700'

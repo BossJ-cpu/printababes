@@ -26,6 +26,7 @@ export default function HomePage() {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [submissionLoading, setSubmissionLoading] = useState(false);
   const [submissionMessage, setSubmissionMessage] = useState('');
+  const [showPopup, setShowPopup] = useState(false);
 
   // PDF Generation State
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -77,6 +78,8 @@ export default function HomePage() {
     e.preventDefault();
     if (!formData.name || !formData.age || !formData.email) {
       setSubmissionMessage('Please fill in all required fields.');
+      setShowPopup(true);
+      setTimeout(() => setShowPopup(false), 3000);
       return;
     }
 
@@ -94,14 +97,21 @@ export default function HomePage() {
 
       if (res.ok) {
         setSubmissionMessage('Data submitted successfully!');
+        setShowPopup(true);
         setFormData({ name: '', age: '', email: '' });
         fetchSubmissions(); // Refresh the list
+        // Auto hide popup after 3 seconds
+        setTimeout(() => setShowPopup(false), 3000);
       } else {
         setSubmissionMessage('Error submitting data. Please try again.');
+        setShowPopup(true);
+        setTimeout(() => setShowPopup(false), 3000);
       }
     } catch (error) {
       console.error('Submit error:', error);
       setSubmissionMessage('Network error. Please check your connection.');
+      setShowPopup(true);
+      setTimeout(() => setShowPopup(false), 3000);
     } finally {
       setSubmissionLoading(false);
     }
@@ -177,8 +187,24 @@ export default function HomePage() {
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all duration-200"
                   placeholder="Enter your full name"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="age" className="block text-sm font-medium text-gray-700 mb-2">
+                  Age *
+                </label>
+                <input
+                  id="age"
+                  name="age"
+                  type="number"
+                  required
+                  value={formData.age}
+                  onChange={(e) => setFormData({...formData, age: e.target.value})}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all duration-200"
+                  placeholder="Enter your age"
                 />
               </div>
 
@@ -193,7 +219,7 @@ export default function HomePage() {
                   required
                   value={formData.email}
                   onChange={(e) => setFormData({...formData, email: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all duration-200"
                   placeholder="Enter your email address"
                 />
               </div>
@@ -216,16 +242,6 @@ export default function HomePage() {
                 )}
               </button>
             </form>
-
-            {submissionMessage && (
-              <div className={`mt-4 p-3 rounded-lg text-sm ${
-                submissionMessage.includes('success') 
-                  ? 'bg-gray-100 text-gray-800 border border-gray-300' 
-                  : 'bg-gray-200 text-gray-900 border border-gray-400'
-              }`}>
-                {submissionMessage}
-              </div>
-            )}
 
             {/* Recent Submissions */}
             <div className="mt-6">
@@ -374,11 +390,51 @@ export default function HomePage() {
         <footer className="mt-16 text-center text-gray-500">
           <div className="border-t border-gray-200 pt-8">
             <p className="text-sm">
-              © 2026 Printables. Built with Next.js, React, and modern web technologies.
+              © 2026 Printables.
             </p>
           </div>
         </footer>
       </div>
+
+      {/* Popup Notification */}
+      {showPopup && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 px-4">
+          <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={() => setShowPopup(false)}></div>
+          <div className="bg-white rounded-lg p-6 shadow-2xl transform transition-all animate-slide-up relative z-10 max-w-md w-full">
+            <div className="flex items-center mb-4">
+              {submissionMessage.includes('success') ? (
+                <div className="flex-shrink-0 w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+              ) : (
+                <div className="flex-shrink-0 w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                  <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </div>
+              )}
+              <div className="ml-3">
+                <h3 className="text-lg font-medium text-gray-900">
+                  {submissionMessage.includes('success') ? 'Success!' : 'Error'}
+                </h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  {submissionMessage}
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end">
+              <button
+                onClick={() => setShowPopup(false)}
+                className="px-4 py-2 bg-gray-900 text-white text-sm rounded-lg hover:bg-gray-800 transition-colors duration-200"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

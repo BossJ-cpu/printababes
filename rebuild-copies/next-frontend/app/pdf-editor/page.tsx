@@ -246,6 +246,15 @@ export default function PdfEditorPage() {
     }
     setSaving(true);
     try {
+      // First ensure the template exists by calling GET (which creates it via firstOrCreate)
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pdf-templates/${template.key}`, {
+        headers: {
+          'Bypass-Tunnel-Reminder': 'true',
+          'ngrok-skip-browser-warning': 'true'
+        }
+      });
+      
+      // Now update with our data
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pdf-templates/${template.key}`, {
         method: 'PUT',
         headers: {
@@ -376,6 +385,16 @@ export default function PdfEditorPage() {
 
     try {
         setSaving(true);
+        
+        // First ensure the template exists by calling GET (which creates it via firstOrCreate)
+        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pdf-templates/${template.key}`, {
+          headers: {
+            'Bypass-Tunnel-Reminder': 'true',
+            'ngrok-skip-browser-warning': 'true'
+          }
+        });
+        
+        // Now upload the file
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pdf-templates/${template.key}/upload`, {
             method: 'POST',
             headers: {

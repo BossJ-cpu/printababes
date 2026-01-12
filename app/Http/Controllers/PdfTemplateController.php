@@ -15,10 +15,22 @@ class PdfTemplateController extends Controller
 
     public function show($key)
     {
-        return PdfTemplate::firstOrCreate(
-            ['key' => $key],
-            ['fields_config' => []]
-        );
+        try {
+            $template = PdfTemplate::firstOrCreate(
+                ['key' => $key],
+                ['fields_config' => []]
+            );
+            
+            // Ensure fields_config is always an object/array
+            if (is_string($template->fields_config)) {
+                $template->fields_config = json_decode($template->fields_config, true) ?? [];
+            }
+            
+            return $template;
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Error creating/fetching template: " . $e->getMessage());
+            return response()->json(['error' => 'Failed to create or fetch template'], 500);
+        }
     }
 
     public function update(Request $request, $key)
@@ -147,13 +159,10 @@ class PdfTemplateController extends Controller
                         $fontSizeMm = $fontSize * $ptToMm;
                         
                         // Strict Box Alignment:
-                        // 1. Remove Cell Padding (cMargin) so X aligns exactly with the start of the box string
-                        $pdf->cMargin = 0;
-                        
-                        // 2. Set coordinate to Top-Left of the box
+                        // Set coordinate to Top-Left of the box
                         $pdf->SetXY($x, $y);
 
-                        // 3. Draw Cell with exact height of the font.
+                        // Draw Cell with exact height of the font.
                         // FPDF vertically centers text in the cell. With height = fontSize, the text fits tightly.
                         // This aligns the "Box" of the PDF with the "Box" of the HTML editor.
                         $pdf->Cell(0, $fontSizeMm, $text, 0, 0, 'L');

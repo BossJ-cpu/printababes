@@ -27,14 +27,14 @@ export default function PDFViewer({ url, template, onAddField }: PDFViewerProps)
     const [hoverCoords, setHoverCoords] = useState<{x: number, y: number} | null>(null);
 
     const onPageLoad = (page: any) => {
-        // page.originalWidth/Height are in points (1/72 inch)
-        // Convert to mm: points * (25.4 / 72)
-        const toMm = 25.4 / 72;
+        // page.originalWidth/Height are in points (1/72 inch).
+        // Valid for backend which now uses 'pt'.
+        // We use raw points everywhere to avoid conversion errors.
         setPageDims(prev => ({
             ...prev,
             [page.pageNumber]: {
-                width: page.originalWidth * toMm,
-                height: page.originalHeight * toMm
+                width: page.originalWidth,
+                height: page.originalHeight
             }
         }));
     };

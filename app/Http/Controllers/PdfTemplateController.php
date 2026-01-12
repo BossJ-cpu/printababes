@@ -97,42 +97,43 @@ class PdfTemplateController extends Controller
         $pdfPath = Storage::disk('public')->path($template->file_path);
         
         try {
-            // Initialize FPDI
-            $pdf = new \setasign\Fpdi\Fpdi();
-            $pageCount = $pdf->setSourceFile($pdfPath);
+// Initialize FPDI in Points ('pt') to match PDF native units and avoid scaling mismatches
+        $pdf = new \setasign\Fpdi\Fpdi('P', 'pt');
+        $pageCount = $pdf->setSourceFile($pdfPath);
 
-            for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {
-                $templateId = $pdf->importPage($pageNo);
-                $size = $pdf->getTemplateSize($templateId);
-                
-                $pdf->AddPage($size['orientation'], array($size['width'], $size['height']));
-                $pdf->useTemplate($templateId);
-                
-                $pdf->SetFont('Arial', '', 12);
-                $pdf->SetTextColor(0, 0, 0);
+        for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {
+            $templateId = $pdf->importPage($pageNo);
+            $size = $pdf->getTemplateSize($templateId);
+            
+            // AddPage using the imported size (which is in pts)
+            $pdf->AddPage($size['orientation'], array($size['width'], $size['height']));
+            $pdf->useTemplate($templateId);
+            
+            // Set Font Size in Points
+            $pdf->SetFont('Arial', '', 12);
+            $pdf->SetTextColor(0, 0, 0);
 
-                $fieldsConfig = $template->fields_config ?? [];
-                if (is_string($fieldsConfig)) {
-                    $fieldsConfig = json_decode($fieldsConfig, true);
-                }
+            $fieldsConfig = $template->fields_config ?? [];
+            if (is_string($fieldsConfig)) {
+                $fieldsConfig = json_decode($fieldsConfig, true);
+            }
 
-                foreach ($fieldsConfig as $fieldName => $config) {
-                     if (($config['page'] ?? 1) == $pageNo) {
-                         // Get value from request or use placeholder
-                         $text = $request->input($fieldName, '');
-                         
-                         $x = $config['x'] ?? 0;
-                         $y = $config['y'] ?? 0;
-                         $fontSize = $config['size'] ?? 12;
-                         
-                         $pdf->SetFontSize($fontSize);
-                         
-                         // Determine visual correction:
-                         // User selects Top-Left in UI.
-                         // $pdf->Text() draws from Baseline.
-                         // Standard Ascender estimate ~80% of font size.
-                         // 1pt = 0.352778mm
-                         $baselineOffset = $fontSize * 0.3528 * 0.75;
+            foreach ($fieldsConfig as $fieldName => $config) {
+                 if (($config['page'] ?? 1) == $pageNo) {
+                     // Get value from request or use placeholder
+                     $text = $request->input($fieldName, '');
+                     
+                     $x = $config['x'] ?? 0;
+                     $y = $config['y'] ?? 0;
+                     $fontSize = $config['size'] ?? 12;
+                     
+                     $pdf->SetFontSize($fontSize);
+                     
+                     // Helper: Standard PDF font baseline assumption
+                     // In 'pt' mode, units are 1:1.
+                     // Ascender height is usually ~0.75 - 0.8 of font size.
+                     // We add this to Y so the text appears *inside* the box drawn from top-left.
+                     $baselineOffset = $fontSize * 0.75;
                          
                          $pdf->Text($x, $y + $baselineOffset, $text);
                      }

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -19,14 +19,32 @@ interface PDFViewerProps {
     url: string;
     template: TemplateConfig | null;
     onAddField?: (x: number, y: number, page: number) => void;
+    onUpdateField?: (fieldKey: string, x: number, y: number) => void;
     coordinateTestMode?: boolean;
     onCoordinateTest?: (x: number, y: number, page: number) => void;
 }
 
-export default function PDFViewer({ url, template, onAddField, coordinateTestMode, onCoordinateTest }: PDFViewerProps) {
+export default function PDFViewer({ url, template, onAddField, onUpdateField, coordinateTestMode, onCoordinateTest }: PDFViewerProps) {
     const [numPages, setNumPages] = useState<number>(0);
     const [pageDims, setPageDims] = useState<Record<number, {width: number, height: number}>>({});
     const [hoverCoords, setHoverCoords] = useState<{x: number, y: number} | null>(null);
+    
+    // Dragging state
+    const [dragState, setDragState] = useState<{
+        isDragging: boolean;
+        fieldKey: string | null;
+        startX: number;
+        startY: number;
+        initialFieldX: number;
+        initialFieldY: number;
+    }>({
+        isDragging: false,
+        fieldKey: null,
+        startX: 0,
+        startY: 0,
+        initialFieldX: 0,
+        initialFieldY: 0
+    });
 
     const onPageLoad = (page: any) => {
         // page.originalWidth/Height are in points (1/72 inch)
@@ -114,6 +132,9 @@ export default function PDFViewer({ url, template, onAddField, coordinateTestMod
     };
 
     const handlePageClick = (e: React.MouseEvent<HTMLDivElement>, pageNumber: number) => {
+        // Don't add field if we're dragging
+        if (dragState.isDragging) return;
+        
         const coords = getCoordinates(e, pageNumber);
         
         if (coordinateTestMode && onCoordinateTest) {
@@ -121,6 +142,73 @@ export default function PDFViewer({ url, template, onAddField, coordinateTestMod
         } else if (onAddField) {
             onAddField(coords.x, coords.y, pageNumber);
         }
+    };
+
+    const handleFieldMouseDown = (e: React.MouseEvent, fieldKey: string, fieldConfig: FieldConfig) => {
+        e.stopPropagation(); // Prevent page click
+        e.preventDefault();
+        
+        const rect = e.currentTarget.parentElement?.getBoundingClientRect();
+        if (!rect) return;
+        
+        setDragState({
+            isDragging: true,
+            fieldKey,
+            startX: e.clientX,
+            startY: e.clientY,
+            initialFieldX: fieldConfig.x,
+            initialFieldY: fieldConfig.y
+        });
+        
+        // Add global mouse event listeners
+        document.addEventListener('mousemove', handleGlobalMouseMove);
+        document.addEventListener('mouseup', handleGlobalMouseUp);
+    };
+
+    const handleGlobalMouseMove = (e: MouseEvent) => {
+        if (!dragState.isDragging || !dragState.fieldKey) return;
+        
+        const deltaX = e.clientX - dragState.startX;
+        const deltaY = e.clientY - dragState.startY;
+        
+        // Find the page container to calculate scale
+        const pageContainer = document.querySelector(`[data-page-number="${template && Object.entries(template.fields_config).find(([key]) => key === dragState.fieldKey)?.[1]?.page || 1}"]`);
+        const canvas = pageContainer?.querySelector('canvas');
+        
+        if (canvas && template) {
+            const canvasRect = canvas.getBoundingClientRect();
+            const fieldPage = template.fields_config[dragState.fieldKey]?.page || 1;
+            const dims = pageDims[fieldPage] || { width: 210, height: 297 };
+            
+            // Convert pixel delta to millimeters
+            const scaleX = dims.width / canvasRect.width;
+            const scaleY = dims.height / canvasRect.height;
+            
+            const deltaXMm = deltaX * scaleX;
+            const deltaYMm = deltaY * scaleY;
+            
+            const newX = Math.max(0, Math.min(dims.width, dragState.initialFieldX + deltaXMm));
+            const newY = Math.max(0, Math.min(dims.height, dragState.initialFieldY + deltaYMm));
+            
+            if (onUpdateField) {
+                onUpdateField(dragState.fieldKey, parseFloat(newX.toFixed(1)), parseFloat(newY.toFixed(1)));
+            }
+        }
+    };
+
+    const handleGlobalMouseUp = () => {
+        setDragState({
+            isDragging: false,
+            fieldKey: null,
+            startX: 0,
+            startY: 0,
+            initialFieldX: 0,
+            initialFieldY: 0
+        });
+        
+        // Remove global event listeners
+        document.removeEventListener('mousemove', handleGlobalMouseMove);
+        document.removeEventListener('mouseup', handleGlobalMouseUp);
     };
 
     return (
@@ -139,7 +227,8 @@ export default function PDFViewer({ url, template, onAddField, coordinateTestMod
                     return (
                         <div 
                             key={pageNumber} 
-                            style={{ position: 'relative', backgroundColor: 'white', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)', cursor: 'crosshair', marginBottom: '1rem' }}
+                            data-page-number={pageNumber}
+                            style={{ position: 'relative', backgroundColor: 'white', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)', cursor: coordinateTestMode ? 'crosshair' : 'default', marginBottom: '1rem' }}
                             onMouseMove={(e) => handleMouseMove(e, pageNumber)} 
                             onMouseLeave={() => setHoverCoords(null)}
                             onClick={(e) => handlePageClick(e, pageNumber)}
@@ -201,29 +290,41 @@ export default function PDFViewer({ url, template, onAddField, coordinateTestMod
                                 
                                 return (
                                 <div key={key}>
-                                    {/* Field Label */}
+                                    {/* Draggable Field Label */}
                                     <div
                                         style={{
                                             position: 'absolute',
                                             border: '2px solid #ef4444',
-                                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                                            backgroundColor: dragState.fieldKey === key ? 'rgba(239, 68, 68, 0.3)' : 'rgba(239, 68, 68, 0.1)',
                                             color: '#dc2626',
-                                            fontSize: '12px',
-                                            lineHeight: '1',
+                                            fontSize: '11px',
+                                            lineHeight: '1.2',
                                             fontWeight: 'bold',
-                                            padding: '0 0.25rem',
+                                            padding: '2px 4px',
                                             left: `${(conf.x / dims.width) * 100}%`,
                                             top: `${(conf.y / dims.height) * 100}%`,
-                                            // transform removed to align backend/frontend coordinate systems (Top-Left origin)
+                                            cursor: dragState.isDragging && dragState.fieldKey === key ? 'grabbing' : 'grab',
+                                            borderRadius: '3px',
+                                            minWidth: '60px',
+                                            textAlign: 'center',
+                                            userSelect: 'none',
+                                            zIndex: 1001,
+                                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                                            transform: 'translate(0, -100%)'
                                         }}
-                                        onClick={(e) => e.stopPropagation()} // Prevent adding new field when clicking existing
+                                        onMouseDown={(e) => handleFieldMouseDown(e, key, conf)}
+                                        onClick={(e) => e.stopPropagation()}
+                                        title={`Drag to reposition ${key}`}
                                     >
-                                        {key}
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+                                            <span>📍</span>
+                                            <span>{key}</span>
+                                        </div>
                                         <div style={{ 
-                                            fontSize: '10px', 
+                                            fontSize: '9px', 
                                             fontWeight: 'normal',
-                                            marginTop: '2px',
-                                            color: 'rgba(239, 68, 68, 0.8)'
+                                            color: 'rgba(239, 68, 68, 0.8)',
+                                            marginTop: '1px'
                                         }}>
                                             {conf.x.toFixed(1)}, {conf.y.toFixed(1)}mm
                                         </div>
@@ -234,10 +335,10 @@ export default function PDFViewer({ url, template, onAddField, coordinateTestMod
                                         position: 'absolute',
                                         left: `${(conf.x / dims.width) * 100}%`,
                                         top: `${(conf.y / dims.height) * 100}%`,
-                                        width: '20px',
-                                        height: '20px',
+                                        width: '16px',
+                                        height: '16px',
                                         transform: 'translate(-50%, -50%)',
-                                        zIndex: 999,
+                                        zIndex: 1000,
                                         pointerEvents: 'none'
                                     }}>
                                         {/* Vertical line */}
@@ -247,7 +348,7 @@ export default function PDFViewer({ url, template, onAddField, coordinateTestMod
                                             top: '0',
                                             width: '1px',
                                             height: '100%',
-                                            backgroundColor: '#dc2626',
+                                            backgroundColor: dragState.fieldKey === key ? '#dc2626' : '#ef4444',
                                             transform: 'translateX(-50%)'
                                         }} />
                                         {/* Horizontal line */}
@@ -257,7 +358,7 @@ export default function PDFViewer({ url, template, onAddField, coordinateTestMod
                                             top: '50%',
                                             width: '100%',
                                             height: '1px',
-                                            backgroundColor: '#dc2626',
+                                            backgroundColor: dragState.fieldKey === key ? '#dc2626' : '#ef4444',
                                             transform: 'translateY(-50%)'
                                         }} />
                                         {/* Center dot */}
@@ -267,7 +368,7 @@ export default function PDFViewer({ url, template, onAddField, coordinateTestMod
                                             top: '50%',
                                             width: '3px',
                                             height: '3px',
-                                            backgroundColor: '#dc2626',
+                                            backgroundColor: dragState.fieldKey === key ? '#dc2626' : '#ef4444',
                                             borderRadius: '50%',
                                             transform: 'translate(-50%, -50%)'
                                         }} />

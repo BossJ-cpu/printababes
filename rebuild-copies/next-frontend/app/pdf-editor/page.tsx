@@ -483,6 +483,22 @@ export default function PdfEditorPage() {
       });
   };
 
+  const handleUpdateField = (fieldKey: string, x: number, y: number) => {
+    if (!template || !template.fields_config[fieldKey]) return;
+    
+    setTemplate({
+        ...template,
+        fields_config: {
+            ...template.fields_config,
+            [fieldKey]: {
+                ...template.fields_config[fieldKey],
+                x,
+                y
+            }
+        }
+    });
+  };
+
   const handleCoordinateTest = async (x: number, y: number, pageNumber: number) => {
     try {
       // Generate test PDF with crosshair at clicked coordinates
@@ -754,7 +770,9 @@ export default function PdfEditorPage() {
                   </p>
                 </div>
               ) : (
-                <p className="text-sm text-gray-600 mt-1">Click on the PDF to add field coordinates. Right-click for page dimensions.</p>
+                <p className="text-sm text-gray-600 mt-1">
+                  Click on the PDF to add field coordinates. Drag existing field markers to reposition them. Right-click for page dimensions.
+                </p>
               )}
             </div>
             
@@ -777,6 +795,7 @@ export default function PdfEditorPage() {
                         url={previewUrl} 
                         template={template} 
                         onAddField={handleAddField}
+                        onUpdateField={handleUpdateField}
                         coordinateTestMode={coordinateTestMode}
                         onCoordinateTest={handleCoordinateTest}
                       />

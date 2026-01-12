@@ -28,13 +28,13 @@ export default function PDFViewer({ url, template, onAddField }: PDFViewerProps)
 
     const onPageLoad = (page: any) => {
         // page.originalWidth/Height are in points (1/72 inch).
-        // Valid for backend which now uses 'pt'.
-        // We use raw points everywhere to avoid conversion errors.
+        // Convert to mm to match Backend's default unit (mm).
+        const toMm = 25.4 / 72;
         setPageDims(prev => ({
             ...prev,
             [page.pageNumber]: {
-                width: page.originalWidth,
-                height: page.originalHeight
+                width: page.originalWidth * toMm,
+                height: page.originalHeight * toMm
             }
         }));
     };

@@ -97,61 +97,59 @@ class PdfTemplateController extends Controller
         $pdfPath = Storage::disk('public')->path($template->file_path);
         
         try {
-// Initialize FPDI in Points ('pt') to match PDF native units and avoid scaling mismatches
-        $pdf = new \setasign\Fpdi\Fpdi('P', 'pt');
-        
-        // Disable Auto Page Break and Margins to Ensure Absolute Positioning works anywhere
-        $pdf->SetAutoPageBreak(false);
-        $pdf->SetMargins(0, 0, 0);
-        
-        $pageCount = $pdf->setSourceFile($pdfPath);
-
-        for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {
-            $templateId = $pdf->importPage($pageNo);
-            $size = $pdf->getTemplateSize($templateId);
+            // Initialize FPDI (Defaults to 'mm', A4)
+            // We use 'mm' to match the legacy data and standard PDF editors.
+            // Using 'mm' fixes the issue where legacy layouts (saved in mm) 
+            // appeared tiny/blank when rendered in 'pt'.
+            $pdf = new \setasign\Fpdi\Fpdi();
             
-            // AddPage using the imported size (which is in pts)
-            $pdf->AddPage($size['orientation'], array($size['width'], $size['height']));
-            $pdf->useTemplate($templateId);
+            // Disable Auto Page Break to prevent unwanted page jumps at bottom
+            $pdf->SetAutoPageBreak(false);
             
-            // Set Font Size in Points
-            $pdf->SetFont('Arial', '', 12);
-            $pdf->SetTextColor(0, 0, 0);
+            $pageCount = $pdf->setSourceFile($pdfPath);
 
-            $fieldsConfig = $template->fields_config ?? [];
-            if (is_string($fieldsConfig)) {
-                $fieldsConfig = json_decode($fieldsConfig, true);
-            }
+            for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {
+                $templateId = $pdf->importPage($pageNo);
+                $size = $pdf->getTemplateSize($templateId);
+                
+                // AddPage using the imported size
+                $pdf->AddPage($size['orientation'], array($size['width'], $size['height']));
+                $pdf->useTemplate($templateId);
+                
+                $pdf->SetFont('Arial', '', 12);
+                $pdf->SetTextColor(0, 0, 0);
 
-            foreach ($fieldsConfig as $fieldName => $config) {
-                 if (($config['page'] ?? 1) == $pageNo) {
-                     // Get value from request or use placeholder
-                     $text = $request->input($fieldName);
-                     
-                     // Fallback: If no value provided in request, show the field name as placeholder
-                     if ($text === null || $text === '') {
-                        $text = "[$fieldName]";
+                $fieldsConfig = $template->fields_config ?? [];
+                if (is_string($fieldsConfig)) {
+                    $fieldsConfig = json_decode($fieldsConfig, true);
+                }
+
+                foreach ($fieldsConfig as $fieldName => $config) {
+                     if (($config['page'] ?? 1) == $pageNo) {
+                         // Get value from request or use placeholder
+                         $text = $request->input($fieldName);
+                         
+                         // Fallback: If no value provided in request, show the field name as placeholder
+                         if ($text === null || $text === '') {
+                            $text = "[$fieldName]";
+                         }
+                         
+                         $text = (string)$text;
+
+                         $x = floatval($config['x'] ?? 0);
+                         $y = floatval($config['y'] ?? 0);
+                         $fontSize = floatval($config['size'] ?? 12);
+                         
+                         $pdf->SetFontSize($fontSize);
+                         $pdf->SetXY($x, $y);
+
+                         // Use Cell for block layout. 
+                         // IMPORTANT: This places the Top-Left of the text cell at X,Y
+                         // matching the frontend editor's box logic.
+                         $pdf->Cell(0, $fontSize, $text, 0, 0, 'L');
                      }
-                     
-                     // Force string type
-                     $text = (string)$text;
-
-                     $x = floatval($config['x'] ?? 0);
-                     $y = floatval($config['y'] ?? 0);
-                     $fontSize = floatval($config['size'] ?? 12);
-                     
-                     \Illuminate\Support\Facades\Log::info("Printing Field: $fieldName at ($x, $y) with text: $text");
-
-                     $pdf->SetFontSize($fontSize);
-                     $pdf->SetXY($x, $y);
-                     
-                     // Cell is more robust than Text() for simple placement
-                     // Width=0 means extend to right margin (but we don't care, we just want text start)
-                     // Height is set to font size to help vertical alignment
-                     $pdf->Cell(0, $fontSize, $text, 0, 0, 'L');
-                 }
+                }
             }
-        }
 
             return response($pdf->Output('S'), 200)
                 ->header('Content-Type', 'application/pdf');

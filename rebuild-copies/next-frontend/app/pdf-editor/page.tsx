@@ -97,8 +97,10 @@ const FieldRow: React.FC<{
             </button>
 
             <div style={{ marginBottom: '0.75rem' }}>
-                <label style={{ ...labelStyle, fontSize: '0.75rem', textTransform: 'uppercase', color: '#6b7280' }}>Field Name</label>
+                <label htmlFor={`field-name-${fieldName}`} style={{ ...labelStyle, fontSize: '0.75rem', textTransform: 'uppercase', color: '#6b7280' }}>Field Name</label>
                 <input 
+                    id={`field-name-${fieldName}`}
+                    name={`fieldName-${fieldName}`}
                     type="text" 
                     value={tempName}
                     onChange={(e) => setTempName(e.target.value)}
@@ -119,8 +121,10 @@ const FieldRow: React.FC<{
             
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
-                    <label style={labelStyle}>Page</label>
+                    <label htmlFor={`page-${fieldName}`} style={labelStyle}>Page</label>
                     <input
+                        id={`page-${fieldName}`}
+                        name={`page-${fieldName}`}
                         type="number"
                         value={config.page || 1}
                         onChange={(e) => onUpdate(fieldName, 'page', Number(e.target.value))}
@@ -128,8 +132,10 @@ const FieldRow: React.FC<{
                     />
                 </div>
                 <div>
-                    <label style={labelStyle}>Font Size</label>
+                    <label htmlFor={`size-${fieldName}`} style={labelStyle}>Font Size</label>
                     <input
+                        id={`size-${fieldName}`}
+                        name={`size-${fieldName}`}
                         type="number"
                         value={config.size || 12}
                         onChange={(e) => onUpdate(fieldName, 'size', Number(e.target.value))}
@@ -137,8 +143,10 @@ const FieldRow: React.FC<{
                     />
                 </div>
                 <div>
-                    <label style={labelStyle}>X (mm)</label>
+                    <label htmlFor={`x-${fieldName}`} style={labelStyle}>X (mm)</label>
                     <input
+                        id={`x-${fieldName}`}
+                        name={`x-${fieldName}`}
                         type="number"
                         value={config.x}
                         onChange={(e) => onUpdate(fieldName, 'x', Number(e.target.value))}
@@ -146,8 +154,10 @@ const FieldRow: React.FC<{
                     />
                 </div>
                 <div>
-                    <label style={labelStyle}>Y (mm)</label>
+                    <label htmlFor={`y-${fieldName}`} style={labelStyle}>Y (mm)</label>
                     <input
+                        id={`y-${fieldName}`}
+                        name={`y-${fieldName}`}
                         type="number"
                         value={config.y}
                         onChange={(e) => onUpdate(fieldName, 'y', Number(e.target.value))}
@@ -522,9 +532,11 @@ export default function PdfEditorPage() {
 
         {/* Profile Selection Dropdown */}
         <div style={{ marginBottom: '1.5rem', padding: '1rem', backgroundColor: '#f3f4f6', borderRadius: '0.5rem' }}>
-            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem', color: '#374151' }}>Select Existing Profile</label>
+            <label htmlFor="profile-select" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem', color: '#374151' }}>Select Existing Profile</label>
             <div style={{ display: 'flex', gap: '0.5rem'}}>
                 <select 
+                    id="profile-select"
+                    name="profileSelect"
                     value={template.key} 
                     onChange={(e) => {
                         if (e.target.value === '') {
@@ -549,8 +561,10 @@ export default function PdfEditorPage() {
         </div>
 
         <div style={{ marginBottom: '1rem' }}>
-            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem', color: '#374151' }}>Profile Name (Key)</label>
+            <label htmlFor="profile-key" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem', color: '#374151' }}>Profile Name (Key)</label>
             <input 
+                id="profile-key"
+                name="profileKey"
                 type="text"
                 value={template.key}
                 onChange={(e) => setTemplate({ ...template, key: e.target.value })}
@@ -571,8 +585,10 @@ export default function PdfEditorPage() {
         </div>
 
         <div style={{ marginBottom: '1.5rem', padding: '0.75rem', border: '1px dashed #9ca3af', borderRadius: '0.5rem', backgroundColor: '#f9fafb' }}>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 500, marginBottom: '0.25rem', color: '#374151' }}>Upload Custom Template (PDF)</label>
+            <label htmlFor="pdf-upload" style={{ display: 'block', fontSize: '0.75rem', fontWeight: 500, marginBottom: '0.25rem', color: '#374151' }}>Upload Custom Template (PDF)</label>
             <input 
+              id="pdf-upload"
+              name="pdfUpload"
               type="file" 
               accept="application/pdf"
               onChange={handleFileUpload}

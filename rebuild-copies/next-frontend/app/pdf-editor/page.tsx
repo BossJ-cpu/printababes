@@ -279,8 +279,12 @@ export default function PdfEditorPage() {
               handlePreview();
           } else {
               setPreviewUrl(null);
-              setPreviewError("Profile saved. Please upload a PDF template to start editing fields.");
+              setPreviewError("Profile saved successfully. Please upload a PDF template to start editing fields.");
           }
+      } else {
+          // Handle save error
+          const errorData = await res.json().catch(() => ({}));
+          alert('Failed to save: ' + (errorData.error || 'Unknown error'));
       }
     } catch (error) {
       console.error('Failed to save', error);

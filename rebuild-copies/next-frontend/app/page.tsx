@@ -144,6 +144,26 @@ export default function HomePage() {
           <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6 animate-fade-in">
             PDF Generator
           </h1>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 max-w-4xl mx-auto">
+            <h2 className="text-lg font-semibold text-blue-900 mb-3">📋 How It Works - 3 Simple Steps</h2>
+            <div className="grid md:grid-cols-3 gap-4 text-sm">
+              <div className="bg-white rounded-lg p-4 border border-blue-100">
+                <div className="text-blue-600 font-bold mb-2">1️⃣ Create Template</div>
+                <p className="text-gray-600">Upload your PDF and set field positions using the PDF Editor</p>
+                <a href="/pdf-editor" className="text-blue-600 hover:text-blue-800 text-sm font-medium mt-2 inline-block">
+                  Open PDF Editor →
+                </a>
+              </div>
+              <div className="bg-white rounded-lg p-4 border border-blue-100">
+                <div className="text-blue-600 font-bold mb-2">2️⃣ Submit Your Data</div>
+                <p className="text-gray-600">Fill out your information using the form below ⬇️</p>
+              </div>
+              <div className="bg-white rounded-lg p-4 border border-blue-100">
+                <div className="text-blue-600 font-bold mb-2">3️⃣ Generate PDF</div>
+                <p className="text-gray-600">Select your data and template to create the final PDF ⬇️</p>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -160,18 +180,18 @@ export default function HomePage() {
                 </svg>
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">Data Submission</h2>
-                <p className="text-gray-600">Submit your information to our database</p>
+                <h2 className="text-2xl font-bold text-gray-900">Step 2: Submit Your Data</h2>
+                <p className="text-gray-600">Enter your personal information</p>
               </div>
             </div>
 
             {/* Instructions */}
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
-              <h3 className="font-semibold text-gray-800 mb-2">How to use:</h3>
+              <h3 className="font-semibold text-gray-800 mb-2">Instructions:</h3>
               <ul className="text-sm text-gray-700 space-y-1">
-                <li>1. Fill in your name, age, and email (required)</li>
-                <li>2. Submit to save your data</li>
-                <li>3. Your submission will appear in the list below</li>
+                <li>• Fill in your name, age, and email (all required)</li>
+                <li>• Click Submit to save your data</li>
+                <li>• Your submission will appear below and be available for PDF generation</li>
               </ul>
             </div>
 
@@ -245,7 +265,7 @@ export default function HomePage() {
 
             {/* Recent Submissions */}
             <div className="mt-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-3">Recent Submissions ({submissions.length})</h3>
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">Your Submitted Data ({submissions.length})</h3>
               <div className="max-h-32 overflow-y-auto space-y-2">
                 {submissions.length > 0 ? (
                   submissions.map(submission => (
@@ -255,18 +275,22 @@ export default function HomePage() {
                     </div>
                   ))
                 ) : (
-                  <p className="text-gray-500 text-sm">No submissions yet.</p>
+                  <div className="text-gray-500 text-sm text-center py-4">
+                    <div className="text-2xl mb-2">📝</div>
+                    <p>No data submitted yet.</p>
+                    <p>Use the form above to submit your information.</p>
+                  </div>
                 )}
               </div>
             </div>
 
-            {/* Link to dedicated page */}
+            {/* Link to PDF Editor */}
             <div className="mt-6 pt-4 border-t border-gray-200">
               <Link
-                href="/simple-form"
+                href="/pdf-editor"
                 className="text-gray-700 hover:text-gray-900 text-sm font-medium flex items-center"
               >
-                Go to dedicated form page
+                Need to create templates? Go to PDF Editor
                 <svg className="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
@@ -283,26 +307,60 @@ export default function HomePage() {
                 </svg>
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">PDF Generator</h2>
-                <p className="text-gray-600">Generate PDFs from your submitted data</p>
+                <h2 className="text-2xl font-bold text-gray-900">Step 3: Generate Your PDF</h2>
+                <p className="text-gray-600">Combine your data with a PDF template</p>
               </div>
             </div>
 
             {/* Instructions */}
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
-              <h3 className="font-semibold text-gray-800 mb-2">How to use:</h3>
+              <h3 className="font-semibold text-gray-800 mb-2">Instructions:</h3>
               <ul className="text-sm text-gray-700 space-y-1">
-                <li>1. First, create PDF templates using the editor</li>
-                <li>2. Submit data using the form on the left</li>
-                <li>3. Select a submission and template below</li>
-                <li>4. Generate a personalized PDF</li>
+                <li>• First, create a PDF template using Step 1 (PDF Editor)</li>
+                <li>• Submit your data using Step 2 (form on the left)</li>
+                <li>• Select your submitted data and PDF template below</li>
+                <li>• Click Generate PDF to create your personalized document</li>
               </ul>
+            </div>
+
+            {/* Status Indicators */}
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div className={`p-3 rounded-lg text-sm ${
+                profiles.length > 0 
+                  ? 'bg-green-50 border border-green-200 text-green-800'
+                  : 'bg-orange-50 border border-orange-200 text-orange-800'
+              }`}>
+                <div className="font-medium">
+                  {profiles.length > 0 ? '✅ Templates Ready' : '⚠️ No Templates'}
+                </div>
+                <div className="text-xs mt-1">
+                  {profiles.length > 0 
+                    ? `${profiles.length} template(s) available`
+                    : 'Create templates in PDF Editor first'
+                  }
+                </div>
+              </div>
+              <div className={`p-3 rounded-lg text-sm ${
+                submissions.length > 0 
+                  ? 'bg-green-50 border border-green-200 text-green-800'
+                  : 'bg-orange-50 border border-orange-200 text-orange-800'
+              }`}>
+                <div className="font-medium">
+                  {submissions.length > 0 ? '✅ Data Ready' : '⚠️ No Data'}
+                </div>
+                <div className="text-xs mt-1">
+                  {submissions.length > 0 
+                    ? `${submissions.length} submission(s) available`
+                    : 'Submit your data using the form first'
+                  }
+                </div>
+              </div>
             </div>
 
             <div className="space-y-4">
               <div>
                 <label htmlFor="submission-select" className="block text-sm font-medium text-gray-700 mb-2">
-                  Select Submission
+                  Select Your Submitted Data
                 </label>
                 <select
                   id="submission-select"
@@ -311,13 +369,16 @@ export default function HomePage() {
                   onChange={(e) => setSelectedSubmissionId(e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                 >
-                  <option value="">-- Select a submission --</option>
+                  <option value="">-- Choose from your submitted data --</option>
                   {submissions.map(submission => (
                     <option key={submission.id} value={submission.id}>
-                      {submission.name} - {submission.email}
+                      {submission.name} (Age {submission.age}) - {submission.email}
                     </option>
                   ))}
                 </select>
+                {submissions.length === 0 && (
+                  <p className="text-sm text-orange-600 mt-1">💡 Submit your data using the form on the left first</p>
+                )}
               </div>
 
               <div>
@@ -331,13 +392,16 @@ export default function HomePage() {
                   onChange={(e) => setSelectedTemplateKey(e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                 >
-                  <option value="">-- Select a template --</option>
+                  <option value="">-- Choose a PDF template --</option>
                   {profiles.map(profile => (
                     <option key={profile.key} value={profile.key}>
                       {profile.name || profile.key}
                     </option>
                   ))}
                 </select>
+                {profiles.length === 0 && (
+                  <p className="text-sm text-orange-600 mt-1">💡 Create PDF templates using the PDF Editor first</p>
+                )}
               </div>
 
               <button
@@ -351,23 +415,34 @@ export default function HomePage() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Generating...
+                    Generating PDF...
                   </span>
                 ) : (
-                  'Generate PDF'
+                  '📄 Generate My PDF'
                 )}
               </button>
+              
+              {!selectedSubmissionId || !selectedTemplateKey ? (
+                <p className="text-sm text-gray-500 text-center mt-2">
+                  {!selectedSubmissionId && !selectedTemplateKey 
+                    ? 'Select both your data and a template to generate PDF'
+                    : !selectedSubmissionId 
+                    ? 'Please select your submitted data'
+                    : 'Please select a PDF template'
+                  }
+                </p>
+              ) : null}
             </div>
 
             {/* Quick Stats */}
             <div className="mt-6 grid grid-cols-2 gap-4">
               <div className="bg-gray-50 p-3 rounded-lg text-center">
                 <div className="text-2xl font-bold text-gray-800">{submissions.length}</div>
-                <div className="text-sm text-gray-600">Submissions</div>
+                <div className="text-sm text-gray-600">Data Entries</div>
               </div>
               <div className="bg-gray-50 p-3 rounded-lg text-center">
                 <div className="text-2xl font-bold text-gray-800">{profiles.length}</div>
-                <div className="text-sm text-gray-600">Templates</div>
+                <div className="text-sm text-gray-600">PDF Templates</div>
               </div>
             </div>
 

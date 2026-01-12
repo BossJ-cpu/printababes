@@ -143,18 +143,17 @@ class PdfTemplateController extends Controller
                          $pdf->SetFontSize($fontSize);
                         
                         // Convert Font Size (Points) to Millimeters
+                        // 1 Pt = 0.352778 mm
                         $ptToMm = 0.352778;
-                        $fontSizeMm = $fontSize * $ptToMm; // Full height in mm
+                        $fontSizeMm = $fontSize * $ptToMm;
                         
-                        // Calculate Baseline Position for explicit Text placement
-                        // User coordinates (x,y) are the Top-Left corner.
-                        // FPDF Text() places text on the Baseline.
-                        // We must shift Y down by the "Ascent" to align the Top.
-                        // Standard type: Baseline is roughly 100% of the Font Height down from the top block limit.
-                        // (Usually ascent + descent + leading, but for single lines using Y + size is a safe alignment)
-                        $baselineOffset = $fontSizeMm;
+                        // Use Cell for block layout (matches HTML Box model best).
+                        // Coordinate (x,y) is Top-Left of the cell.
+                        // No manual baseline calculation needed.
+                        $pdf->SetXY($x, $y);
 
-                        $pdf->Text($x, $y + $baselineOffset, $text);
+                        // Use Cell with correct height (in MM).
+                        $pdf->Cell(0, $fontSizeMm, $text, 0, 0, 'L');
                      }
                 }
             }

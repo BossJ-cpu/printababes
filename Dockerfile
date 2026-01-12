@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y \
     unzip \
     libpng-dev \
     git \
+    ghostscript \
  && docker-php-ext-install pdo_mysql zip gd
 
 # Enable Apache mod_rewrite

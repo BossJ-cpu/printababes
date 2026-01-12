@@ -49,8 +49,37 @@ class PdfTemplateController extends Controller
         $template = PdfTemplate::firstOrCreate(['key' => $key]);
 
         if ($request->hasFile('pdf')) {
-            $path = $request->file('pdf')->store('templates', 'public');
-            $template->update(['file_path' => $path]);
+            $file = $request->file('pdf');
+            $originalPath = $file->store('templates', 'public');
+            
+            // Absolute path for Ghostscript
+            $fullPath = Storage::disk('public')->path($originalPath);
+            $tempPath = $fullPath . '_temp.pdf';
+
+            try {
+                // Use Ghostscript to convert PDF to version 1.4 which is fully compatible with FPDI
+                // -sDEVICE=pdfwrite: output as PDF
+                // -dCompatibilityLevel=1.4: target version 1.4
+                // -dNOPAUSE -dBATCH: don't pause, exit after processing
+                // -dQUIET: suppress stdout
+                $cmd = "gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dNOPAUSE -dQUIET -dBATCH -sOutputFile=" . escapeshellarg($tempPath) . " " . escapeshellarg($fullPath);
+                
+                exec($cmd, $output, $returnCode);
+
+                if ($returnCode === 0 && file_exists($tempPath)) {
+                    // Success, replace original file with repaired one
+                    unlink($fullPath);
+                    rename($tempPath, $fullPath);
+                } else {
+                    \Illuminate\Support\Facades\Log::warning("Ghostscript conversion failed for $key", ['return' => $returnCode, 'output' => $output]);
+                    if (file_exists($tempPath)) unlink($tempPath);
+                }
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error("Ghostscript attempt failed: " . $e->getMessage());
+                // Continue with original file if GS fails
+            }
+
+            $template->update(['file_path' => $originalPath]);
         }
 
         return $template;

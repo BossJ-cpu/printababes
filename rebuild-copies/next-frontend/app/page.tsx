@@ -14,6 +14,7 @@ type Submission = {
 type Profile = {
   key: string;
   name?: string;
+  file_path?: string;
 };
 
 export default function HomePage() {
@@ -119,17 +120,81 @@ export default function HomePage() {
 
   const handleGeneratePdf = async () => {
     if (!selectedSubmissionId || !selectedTemplateKey) {
-      alert('Please select both a submission and a template.');
+      setSubmissionMessage('Please select both your data and a PDF template.');
+      setShowPopup(true);
+      setTimeout(() => setShowPopup(false), 3000);
       return;
     }
 
     setPdfLoading(true);
     try {
+      // First check if the template exists and has a PDF file
+      const templateCheck = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pdf-templates/${selectedTemplateKey}`, {
+        headers: {
+          'Bypass-Tunnel-Reminder': 'true',
+          'ngrok-skip-browser-warning': 'true'
+        }
+      });
+      
+      if (!templateCheck.ok) {
+        throw new Error(`Template '${selectedTemplateKey}' not found`);
+      }
+      
+      const templateData = await templateCheck.json();
+      if (!templateData.file_path) {
+        setSubmissionMessage(`Template '${selectedTemplateKey}' needs a PDF file. Please go to PDF Editor and upload a PDF template first.`);
+        setShowPopup(true);
+        setTimeout(() => setShowPopup(false), 5000);
+        return;
+      }
+
+      // Generate PDF
       let url = `${process.env.NEXT_PUBLIC_API_URL}/app/generate-submission-pdf/${selectedSubmissionId}/${selectedTemplateKey}`;
+      
+      // Test the URL first to catch server errors
+      const testResponse = await fetch(url, {
+        method: 'HEAD',
+        headers: {
+          'Bypass-Tunnel-Reminder': 'true',
+          'ngrok-skip-browser-warning': 'true'
+        }
+      });
+      
+      if (!testResponse.ok) {
+        const errorText = await testResponse.text().catch(() => 'Unknown error');
+        if (errorText.includes('not found') || testResponse.status === 404) {
+          setSubmissionMessage(`PDF template file is missing. Please upload a PDF file for template '${selectedTemplateKey}' in the PDF Editor.`);
+        } else {
+          setSubmissionMessage(`PDF generation failed: ${errorText || 'Server error'}. Please try again.`);
+        }
+        setShowPopup(true);
+        setTimeout(() => setShowPopup(false), 5000);
+        return;
+      }
+      
+      // If test passed, open PDF in new window
       window.open(url, '_blank');
+      setSubmissionMessage('PDF generated successfully! 🎉');
+      setShowPopup(true);
+      setTimeout(() => setShowPopup(false), 3000);
+      
     } catch (error) {
       console.error('PDF generation error:', error);
-      alert('Error generating PDF. Please try again.');
+      let errorMessage = 'Error generating PDF. Please try again.';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('not found')) {
+          errorMessage = `Template '${selectedTemplateKey}' not found. Please create it in the PDF Editor first.`;
+        } else if (error.message.includes('Template') && error.message.includes('needs a PDF file')) {
+          errorMessage = error.message;
+        } else {
+          errorMessage = `PDF generation failed: ${error.message}`;
+        }
+      }
+      
+      setSubmissionMessage(errorMessage);
+      setShowPopup(true);
+      setTimeout(() => setShowPopup(false), 5000);
     } finally {
       setPdfLoading(false);
     }
@@ -326,16 +391,19 @@ export default function HomePage() {
             {/* Status Indicators */}
             <div className="grid grid-cols-2 gap-3 mb-4">
               <div className={`p-3 rounded-lg text-sm ${
-                profiles.length > 0 
+                profiles.length > 0 && profiles.some(p => p.file_path)
                   ? 'bg-green-50 border border-green-200 text-green-800'
+                  : profiles.length > 0 
+                  ? 'bg-yellow-50 border border-yellow-200 text-yellow-800'
                   : 'bg-orange-50 border border-orange-200 text-orange-800'
               }`}>
                 <div className="font-medium">
-                  {profiles.length > 0 ? '✅ Templates Ready' : '⚠️ No Templates'}
+                  {profiles.length > 0 && profiles.some(p => p.file_path) ? '✅ Templates Ready' : 
+                   profiles.length > 0 ? '⚠️ Templates Need PDFs' : '⚠️ No Templates'}
                 </div>
                 <div className="text-xs mt-1">
                   {profiles.length > 0 
-                    ? `${profiles.length} template(s) available`
+                    ? `${profiles.filter(p => p.file_path).length}/${profiles.length} have PDF files`
                     : 'Create templates in PDF Editor first'
                   }
                 </div>
@@ -395,12 +463,15 @@ export default function HomePage() {
                   <option value="">-- Choose a PDF template --</option>
                   {profiles.map(profile => (
                     <option key={profile.key} value={profile.key}>
-                      {profile.name || profile.key}
+                      {profile.file_path ? '✅' : '⚠️'} {profile.name || profile.key} {!profile.file_path ? '(No PDF uploaded)' : ''}
                     </option>
                   ))}
                 </select>
                 {profiles.length === 0 && (
                   <p className="text-sm text-orange-600 mt-1">💡 Create PDF templates using the PDF Editor first</p>
+                )}
+                {profiles.length > 0 && profiles.every(p => !p.file_path) && (
+                  <p className="text-sm text-orange-600 mt-1">⚠️ All templates need PDF files. Upload PDFs in the PDF Editor.</p>
                 )}
               </div>
 

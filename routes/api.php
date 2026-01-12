@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SubmissionController;
 use App\Http\Controllers\PdfTemplateController;
+use App\Http\Controllers\CoordinateTestController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -17,3 +18,4 @@ Route::put('pdf-templates/{key}', [PdfTemplateController::class, 'update']);
 Route::post('pdf-templates/{key}/upload', [PdfTemplateController::class, 'upload']);
 Route::delete('pdf-templates/{key}', [PdfTemplateController::class, 'destroy']);
 Route::get('pdf-templates/{key}/preview', [PdfTemplateController::class, 'preview']);
+Route::get('pdf-templates/{key}/coordinate-test', [CoordinateTestController::class, 'testCoordinate']);

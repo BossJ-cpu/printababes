@@ -169,6 +169,10 @@ export default function PdfEditorPage() {
   const [notificationMessage, setNotificationMessage] = useState('');
   const [notificationType, setNotificationType] = useState<'success' | 'error' | 'info'>('info');
   const [shouldAutoPreview, setShouldAutoPreview] = useState(false);
+  
+  // Coordinate test state
+  const [coordinateTestMode, setCoordinateTestMode] = useState(false);
+  const [testCoordinates, setTestCoordinates] = useState<{x: number, y: number, page: number} | null>(null);
 
   // Notification helper
   const showNotif = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
@@ -480,6 +484,38 @@ export default function PdfEditorPage() {
       });
   };
 
+  const handleCoordinateTest = async (x: number, y: number, pageNumber: number) => {
+    setTestCoordinates({ x, y, page: pageNumber });
+    
+    try {
+      // Generate test PDF with crosshair at clicked coordinates
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/pdf-templates/${template.key}/coordinate-test?x=${x}&y=${y}&page=${pageNumber}`,
+        {
+          headers: {
+            'Bypass-Tunnel-Reminder': 'true',
+            'ngrok-skip-browser-warning': 'true'
+          }
+        }
+      );
+
+      if (response.ok) {
+        const blob = await response.blob();
+        const testUrl = URL.createObjectURL(blob);
+        
+        // Open the test PDF in a new tab
+        window.open(testUrl, '_blank');
+        
+        showNotif(`Test coordinate placed at X: ${x.toFixed(1)}mm, Y: ${y.toFixed(1)}mm on page ${pageNumber}`, 'success');
+      } else {
+        throw new Error('Failed to generate coordinate test');
+      }
+    } catch (error) {
+      console.error('Coordinate test error:', error);
+      showNotif('Failed to generate coordinate test PDF', 'error');
+    }
+  };
+
   const handleRemoveField = (fieldName: string) => {
       if (!template) return;
       const newConfig = { ...template.fields_config };
@@ -691,6 +727,18 @@ export default function PdfEditorPage() {
                         Delete
                      </button>
                   )}
+                  
+                  <button
+                    onClick={() => setCoordinateTestMode(!coordinateTestMode)}
+                    className={`px-4 py-2 rounded-md font-medium text-sm transition-all duration-200 ${
+                      coordinateTestMode
+                        ? 'bg-orange-600 text-white hover:bg-orange-700'
+                        : 'bg-orange-100 text-orange-700 hover:bg-orange-200 border border-orange-300'
+                    }`}
+                    title="Test coordinate accuracy by clicking and generating a PDF with crosshair markers"
+                  >
+                    {coordinateTestMode ? '🎯 Test Mode ON' : '🎯 Test Coordinates'}
+                  </button>
                 </div>
               </div>
             </div>
@@ -700,7 +748,17 @@ export default function PdfEditorPage() {
           <div className="col-span-8 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
             <div className="p-4 border-b border-gray-200 bg-gray-50">
               <h2 className="text-lg font-semibold text-gray-800">PDF Preview</h2>
-              <p className="text-sm text-gray-600 mt-1">Click on the PDF to add field coordinates</p>
+              {coordinateTestMode ? (
+                <div className="bg-orange-50 border border-orange-200 rounded p-3 mt-2">
+                  <p className="text-sm text-orange-800 font-medium">🎯 Coordinate Test Mode Active</p>
+                  <p className="text-xs text-orange-700 mt-1">
+                    Click anywhere on the PDF to generate a test PDF with a crosshair at that exact coordinate. 
+                    This helps verify coordinate accuracy. Right-click for page dimensions.
+                  </p>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-600 mt-1">Click on the PDF to add field coordinates. Right-click for page dimensions.</p>
+              )}
             </div>
             
             <div className="p-4 h-full bg-gray-50 overflow-auto">
@@ -718,7 +776,13 @@ export default function PdfEditorPage() {
                     </div>
                 ) : previewUrl ? (
                     <div className="w-full h-full">
-                      <PDFViewer url={previewUrl} template={template} onAddField={handleAddField} />
+                      <PDFViewer 
+                        url={previewUrl} 
+                        template={template} 
+                        onAddField={handleAddField}
+                        coordinateTestMode={coordinateTestMode}
+                        onCoordinateTest={handleCoordinateTest}
+                      />
                     </div>
                 ) : (
                     <div className="text-center mt-20">

@@ -143,14 +143,17 @@ class PdfTemplateController extends Controller
                          $pdf->SetFontSize($fontSize);
                         
                         // Convert Font Size (Points) to Millimeters
-                        // 1 Pt = 0.352778 mm
                         $ptToMm = 0.352778;
-                        $fontSizeMm = $fontSize * $ptToMm;
+                        $fontSizeMm = $fontSize * $ptToMm; // Full height in mm
                         
-                        $pdf->SetXY($x, $y);
+                        // Calculate Baseline Position for explicit Text placement
+                        // User coordinates (x,y) are the Top-Left corner.
+                        // FPDF Text() places text on the Baseline.
+                        // We must shift Y down by the "Ascent" (approx 80% of font height) to align the Top.
+                        $ascentFactor = 0.8;
+                        $baselineY = $y + ($fontSizeMm * $ascentFactor);
 
-                        // Use Cell with correct height (in MM).
-                        $pdf->Cell(0, $fontSizeMm, $text, 0, 0, 'L');
+                        $pdf->Text($x, $baselineY, $text);
                      }
                 }
             }

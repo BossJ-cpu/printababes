@@ -9,6 +9,7 @@ type FieldConfig = {
   x: number;
   y: number;
   page?: number;
+  size?: number;
 };
 
 type TemplateConfig = {
@@ -98,11 +99,12 @@ export default function PDFViewer({ url, template, onAddField }: PDFViewerProps)
                                 return (
                                 <div
                                     key={key}
-                                    className="absolute border-2 border-red-500 bg-red-500 bg-opacity-10 text-red-600 text-[10px] font-bold px-1"
+                                    className="absolute border-red-500 bg-red-500 bg-opacity-10 text-red-600 font-bold px-0 leading-none whitespace-nowrap overflow-visible"
                                     style={{
                                         left: (conf.x / 210) * 100 + '%',
                                         top: (conf.y / 297) * 100 + '%',
-                                        // transform: 'translateY(-50%)' // Removed to match backend "Top-Left" alignment
+                                        fontSize: (conf.size || 12) + 'pt',
+                                        borderWidth: '1px'
                                     }}
                                     onClick={(e) => e.stopPropagation()} // Prevent adding new field when clicking existing
                                 >

@@ -143,17 +143,14 @@ class PdfTemplateController extends Controller
                          $pdf->SetFontSize($fontSize);
                         
                         // Convert Font Size (Points) to Millimeters
-                        // 1 Pt = 0.352778 mm
                         $ptToMm = 0.352778;
                         $fontSizeMm = $fontSize * $ptToMm;
                         
-                        // Use Cell for block layout (matches HTML Box model best).
-                        // Coordinate (x,y) is Top-Left of the cell.
-                        // No manual baseline calculation needed.
-                        $pdf->SetXY($x, $y);
-
-                        // Use Cell with correct height (in MM).
-                        $pdf->Cell(0, $fontSizeMm, $text, 0, 0, 'L');
+                        // Use Text() with Baseline Offset.
+                        // We shift Y down by the full font height to ensure the "Top" of the text visual
+                        // aligns with the Top-Left coordinate (x,y).
+                        // This moves the printed text DOWN compared to standard Cell(), fixing the "floating high" issue.
+                        $pdf->Text($x, $y + $fontSizeMm, $text);
                      }
                 }
             }

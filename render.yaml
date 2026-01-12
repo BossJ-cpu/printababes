@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: printababes-laravel
+    env: docker
+    plan: free
+    envVars:
+      - key: APP_KEY
+        generateValue: true
+      - key: APP_DEBUG
+        value: true
+      - key: APP_URL
+        value: https://printababes-laravel.onrender.com 
+      - key: DB_CONNECTION
+        value: sqlite
+      - key: LOG_CHANNEL
+        value: stderr
+

@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import Navbar from "../components/Navbar";
 
 export const metadata: Metadata = {
-  title: "PDF Printables",
-  description: "PDF Printables Generator",
+  title: "Printables - Modern PDF Generator",
+  description: "Create and manage PDF templates with dynamic data submission",
 };
 
 export default function RootLayout({
@@ -13,7 +14,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <Navbar />
+        <main className="pt-16">
+          {children}
+        </main>
+      </body>
     </html>
   );
 }

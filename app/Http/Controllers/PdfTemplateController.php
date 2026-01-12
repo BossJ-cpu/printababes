@@ -146,11 +146,17 @@ class PdfTemplateController extends Controller
                         $ptToMm = 0.352778;
                         $fontSizeMm = $fontSize * $ptToMm;
                         
-                        // Use Text() with Baseline Offset.
-                        // We shift Y down by the full font height to ensure the "Top" of the text visual
-                        // aligns with the Top-Left coordinate (x,y).
-                        // This moves the printed text DOWN compared to standard Cell(), fixing the "floating high" issue.
-                        $pdf->Text($x, $y + $fontSizeMm, $text);
+                        // Use Standard Cell Layout.
+                        // We strictly align the Cell's Top-Left to the User's Top-Left coordinate.
+                        // Now that the Frontend sends high-precision (float) coordinates, 
+                        // this Box-to-Box mapping should be accurate.
+                        $pdf->SetXY($x, $y);
+
+                        // Draw Cell with exact height of the font.
+                        // Standard FPDF adds a small 1mm left-padding (cMargin) by default.
+                        // We subtract roughly 1mm from X to align the text start if needed, 
+                        // but for now we stick to raw coordinates to match the visual box container.
+                        $pdf->Cell(0, $fontSizeMm, $text, 0, 0, 'L');
                      }
                 }
             }

@@ -130,12 +130,13 @@ export default function PDFViewer({ url, template, onAddField }: PDFViewerProps)
                                         border: '2px solid #ef4444',
                                         backgroundColor: 'rgba(239, 68, 68, 0.1)',
                                         color: '#dc2626',
-                                        fontSize: '10px',
+                                        fontSize: '12px',
+                                        lineHeight: '1',
                                         fontWeight: 'bold',
                                         padding: '0 0.25rem',
                                         left: (conf.x / dims.width) * 100 + '%',
                                         top: (conf.y / dims.height) * 100 + '%',
-                                        transform: 'translateY(-50%)' 
+                                        // transform removed to align backend/frontend coordinate systems (Top-Left origin)
                                     }}
                                     onClick={(e) => e.stopPropagation()} // Prevent adding new field when clicking existing
                                 >

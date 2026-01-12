@@ -141,12 +141,15 @@ class PdfTemplateController extends Controller
                          $fontSize = floatval($config['size'] ?? 12);
                          
                          $pdf->SetFontSize($fontSize);
-                         $pdf->SetXY($x, $y);
-
-                         // Use Cell for block layout. 
-                         // IMPORTANT: This places the Top-Left of the text cell at X,Y
-                         // matching the frontend editor's box logic.
-                         $pdf->Cell(0, $fontSize, $text, 0, 0, 'L');
+                        
+                        // FPDF/FPDI "Text" method calculates from the baseline, not top-left.
+                        // We need to shift Y down by approximately 75% of the font height to simulate "Top-Left" positioning.
+                        // Since units are in MM, we convert PT font size to MM first.
+                        $ptToMm = 0.352778;
+                        $fontSizeMm = $fontSize * $ptToMm;
+                        $baselineOffset = $fontSizeMm * 0.75; 
+                        
+                        $pdf->Text($x, $y + $baselineOffset, $text);
                      }
                 }
             }

@@ -369,8 +369,10 @@ export default function PdfEditorPage() {
                console.warn("Preview 422 - Validation/Processing Error:", message);
                setPreviewError(`Preview Error: ${message}`);
            } else {
-               console.error("Preview failed with status:", res.status);
-               setPreviewError(`Failed to generate preview. (Status: ${res.status})`);
+               // For 500 errors and others, show the detailed error message
+               const message = errorData.error || `HTTP ${res.status} Error`;
+               console.error("Preview failed with status:", res.status, "Error:", message, "Details:", errorData.details);
+               setPreviewError(`Preview Error: ${message}`);
            }
            setPreviewUrl(null);
            return;

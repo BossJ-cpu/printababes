@@ -27,6 +27,9 @@ RUN echo "<Directory ${APACHE_DOCUMENT_ROOT}>" >> /etc/apache2/conf-available/la
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
+# Configure PHP Upload Limits
+COPY uploads.ini /usr/local/etc/php/conf.d/uploads.ini
+
 # Set working directory
 WORKDIR /var/www/html
 

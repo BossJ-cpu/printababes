@@ -111,13 +111,11 @@ export default function PDFViewer({
                       className="absolute border border-red-500 bg-red-500 bg-opacity-10 text-red-600 font-bold whitespace-nowrap"
                       style={{
                         left: (conf.x / 210) * 100 + '%',
-
-                        // 🔥 FIX: baseline alignment correction
-                        top: `calc(${(conf.y / 297) * 100}% - ${fontSize}pt)`,
-
+                        top: (conf.y / 297) * 100 + '%',
                         fontSize: fontSize + 'pt',
                         lineHeight: '1',
                         padding: '0',
+                        transform: 'translateY(-100%)',
                       }}
                       onClick={(e) => e.stopPropagation()}
                     >

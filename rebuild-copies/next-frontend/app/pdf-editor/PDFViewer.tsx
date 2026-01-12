@@ -22,9 +22,10 @@ interface PDFViewerProps {
     onUpdateField?: (fieldKey: string, x: number, y: number) => void;
     coordinateTestMode?: boolean;
     onCoordinateTest?: (x: number, y: number, page: number) => void;
+    backendDimensions?: Record<number, {width: number, height: number, orientation: string}>;
 }
 
-export default function PDFViewer({ url, template, onAddField, onUpdateField, coordinateTestMode, onCoordinateTest }: PDFViewerProps) {
+export default function PDFViewer({ url, template, onAddField, onUpdateField, coordinateTestMode, onCoordinateTest, backendDimensions }: PDFViewerProps) {
     const [numPages, setNumPages] = useState<number>(0);
     const [pageDims, setPageDims] = useState<Record<number, {width: number, height: number}>>({});
     const [hoverCoords, setHoverCoords] = useState<{x: number, y: number} | null>(null);
@@ -79,7 +80,9 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
 
     const getCoordinates = (e: React.MouseEvent<HTMLDivElement>, pageNumber: number) => {
         const rect = e.currentTarget.getBoundingClientRect();
-        const dims = pageDims[pageNumber] || { width: 210, height: 297 }; // Default A4 in mm
+        
+        // Use backend dimensions if available, otherwise fallback to calculated dimensions
+        const dims = backendDimensions?.[pageNumber] || pageDims[pageNumber] || { width: 210, height: 297 };
         
         // Get click position relative to the container
         const clickX = e.clientX - rect.left;
@@ -97,14 +100,15 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
         const resultX = parseFloat(mmX.toFixed(1));
         const resultY = parseFloat(mmY.toFixed(1));
         
-        // Debug logging (can be disabled)
-        // console.log('Coordinate calculation:', {
-        //     pageNumber,
-        //     clickPixels: { x: clickX, y: clickY },
-        //     actualRenderSize: { width: actualRenderWidth, height: actualRenderHeight },
-        //     pageDimsMm: dims,
-        //     resultMm: { x: resultX, y: resultY }
-        // });
+        // Debug logging (temporarily enabled for debugging)
+        console.log('Coordinate calculation:', {
+            pageNumber,
+            clickPixels: { x: clickX, y: clickY },
+            actualRenderSize: { width: actualRenderWidth, height: actualRenderHeight },
+            pageDimsMm: dims,
+            usingBackendDims: !!backendDimensions?.[pageNumber],
+            resultMm: { x: resultX, y: resultY }
+        });
         
         return { x: resultX, y: resultY };
     };
@@ -174,7 +178,7 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
         
         const pageRect = pageContainer.getBoundingClientRect();
         const fieldPage = template.fields_config[dragState.fieldKey]?.page || 1;
-        const dims = pageDims[fieldPage] || { width: 210, height: 297 };
+        const dims = backendDimensions?.[fieldPage] || pageDims[fieldPage] || { width: 210, height: 297 };
         
         // Convert pixel delta to millimeter delta using actual rendered dimensions
         const actualRenderWidth = pageRect.width;
@@ -233,7 +237,7 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {Array.from(new Array(numPages), (_, index) => {
                     const pageNumber = index + 1;
-                    const dims = pageDims[pageNumber] || { width: 210, height: 297 };
+                    const dims = backendDimensions?.[pageNumber] || pageDims[pageNumber] || { width: 210, height: 297 };
 
                     return (
                         <div 
@@ -288,8 +292,11 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
                                 const fieldPage = conf.page || 1;
                                 if (fieldPage !== pageNumber) return null;
                                 
+                                // Use backend dimensions for field positioning
+                                const fieldDims = backendDimensions?.[fieldPage] || dims;
+                                
                                 // Calculate position using utility function for consistency
-                                const { leftPercent, topPercent } = calculateFieldPosition(conf.x, conf.y, dims);
+                                const { leftPercent, topPercent } = calculateFieldPosition(conf.x, conf.y, fieldDims);
                                 
                                 return (
                                 <div key={key}>

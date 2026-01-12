@@ -62,6 +62,16 @@ class CoordinateTestController extends Controller
                 $templateId = $pdf->importPage($pageNo);
                 $size = $pdf->getTemplateSize($templateId);
                 
+                // Log dimensions for debugging
+                \Illuminate\Support\Facades\Log::info("Coordinate Test PDF Dimensions", [
+                    'page' => $pageNo,
+                    'width_mm' => $size['width'],
+                    'height_mm' => $size['height'],
+                    'test_x' => $testX,
+                    'test_y' => $testY,
+                    'requested_page' => $testPage
+                ]);
+                
                 $pdf->AddPage($size['orientation'], array($size['width'], $size['height']));
                 $pdf->useTemplate($templateId);
                 

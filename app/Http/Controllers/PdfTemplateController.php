@@ -130,6 +130,14 @@ class PdfTemplateController extends Controller
                 $templateId = $pdf->importPage($pageNo);
                 $size = $pdf->getTemplateSize($templateId);
                 
+                // Log the actual PDF dimensions for debugging
+                \Illuminate\Support\Facades\Log::info("PDF Template Dimensions", [
+                    'page' => $pageNo,
+                    'width_mm' => $size['width'],
+                    'height_mm' => $size['height'],
+                    'orientation' => $size['orientation']
+                ]);
+                
                 // AddPage using the imported size
                 $pdf->AddPage($size['orientation'], array($size['width'], $size['height']));
                 $pdf->useTemplate($templateId);
@@ -183,6 +191,48 @@ class PdfTemplateController extends Controller
                 'error' => 'Error processing PDF: ' . $e->getMessage(),
                 'details' => 'Check server logs for more information'
             ], 500);
+        }
+    }
+    
+    public function getDimensions($key)
+    {
+        try {
+            $template = PdfTemplate::where('key', $key)->firstOrFail();
+            
+            if (!$template->file_path || !Storage::disk('public')->exists($template->file_path)) {
+                return response()->json(['error' => 'PDF not found'], 404);
+            }
+
+            $pdfPath = Storage::disk('public')->path($template->file_path);
+            
+            // Initialize FPDI with explicit millimeters unit for consistency
+            $pdf = new \setasign\Fpdi\Fpdi('P', 'mm');
+            $pageCount = $pdf->setSourceFile($pdfPath);
+            
+            $dimensions = [];
+            for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {
+                $templateId = $pdf->importPage($pageNo);
+                $size = $pdf->getTemplateSize($templateId);
+                
+                $dimensions[$pageNo] = [
+                    'width' => $size['width'],
+                    'height' => $size['height'],
+                    'orientation' => $size['orientation']
+                ];
+            }
+            
+            return response()->json([
+                'dimensions' => $dimensions,
+                'pageCount' => $pageCount
+            ]);
+            
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("PDF Dimensions Error", [
+                'key' => $key,
+                'message' => $e->getMessage()
+            ]);
+            
+            return response()->json(['error' => 'Failed to get PDF dimensions'], 500);
         }
     }
 

@@ -163,6 +163,7 @@ export default function PdfEditorPage() {
   const [saving, setSaving] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
+  const [backendDimensions, setBackendDimensions] = useState<Record<number, {width: number, height: number, orientation: string}> | null>(null);
   
   // New state for notifications and upload control
   const [showNotification, setShowNotification] = useState(false);
@@ -173,7 +174,32 @@ export default function PdfEditorPage() {
   // Coordinate test state
   const [coordinateTestMode, setCoordinateTestMode] = useState(false);
 
-  // Notification helper
+  // Fetch actual PDF dimensions from backend
+  const fetchPdfDimensions = async (templateKey: string) => {
+    if (!templateKey) return;
+    
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/pdf-templates/${encodeURIComponent(templateKey)}/dimensions`,
+        {
+          headers: {
+            'Bypass-Tunnel-Reminder': 'true',
+            'ngrok-skip-browser-warning': 'true'
+          }
+        }
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Backend PDF dimensions:', data);
+        return data.dimensions;
+      }
+    } catch (error) {
+      console.error('Failed to fetch PDF dimensions:', error);
+    }
+    
+    return null;
+  };
   const showNotif = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
     setNotificationMessage(message);
     setNotificationType(type);
@@ -226,6 +252,14 @@ export default function PdfEditorPage() {
           ...data,
           fields_config: data.fields_config || {} 
       });
+      
+      // Fetch backend PDF dimensions for accurate coordinate mapping
+      const dimensions = await fetchPdfDimensions(key);
+      if (dimensions) {
+        setBackendDimensions(dimensions);
+        console.log('Loaded backend dimensions for template:', key, dimensions);
+      }
+      
       // Trigger preview after loading
       setTimeout(() => {
           // We need to use valid state here, so let's rely on the data we just fetched
@@ -800,6 +834,7 @@ export default function PdfEditorPage() {
                         onUpdateField={handleUpdateField}
                         coordinateTestMode={coordinateTestMode}
                         onCoordinateTest={handleCoordinateTest}
+                        backendDimensions={backendDimensions || undefined}
                       />
                     </div>
                 ) : (

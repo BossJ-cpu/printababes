@@ -172,7 +172,6 @@ export default function PdfEditorPage() {
   
   // Coordinate test state
   const [coordinateTestMode, setCoordinateTestMode] = useState(false);
-  const [testCoordinates, setTestCoordinates] = useState<{x: number, y: number, page: number} | null>(null);
 
   // Notification helper
   const showNotif = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
@@ -485,8 +484,6 @@ export default function PdfEditorPage() {
   };
 
   const handleCoordinateTest = async (x: number, y: number, pageNumber: number) => {
-    setTestCoordinates({ x, y, page: pageNumber });
-    
     try {
       // Generate test PDF with crosshair at clicked coordinates
       const response = await fetch(

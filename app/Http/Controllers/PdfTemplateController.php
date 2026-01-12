@@ -123,19 +123,18 @@ class PdfTemplateController extends Controller
                      // Get value from request or use placeholder
                      $text = $request->input($fieldName, '');
                      
-                     $x = $config['x'] ?? 0;
-                     $y = $config['y'] ?? 0;
-                     $fontSize = $config['size'] ?? 12;
-                     
-                     $pdf->SetFontSize($fontSize);
-                     
-                     // Helper: Standard PDF font baseline assumption
-                     // In 'pt' mode, units are 1:1.
-                     // Ascender height is usually ~0.75 - 0.8 of font size.
-                     // We add this to Y so the text appears *inside* the box drawn from top-left.
-                     $baselineOffset = $fontSize * 0.75;
-                         
-                         $pdf->Text($x, $y + $baselineOffset, $text);
+                     if (!empty($text)) {
+                        $x = $config['x'] ?? 0;
+                        $y = $config['y'] ?? 0;
+                        $fontSize = $config['size'] ?? 12;
+                        
+                        $pdf->SetFontSize($fontSize);
+                        $pdf->SetXY($x, $y);
+                        // Cell(width, height, text, border, ln, align)
+                        // Width 0 = extends to right margin
+                        // Height = fontSize (approx) to ensure baseline is handled correctly relative to XY
+                        $pdf->Cell(0, $fontSize, $text, 0, 0, 'L');
+                     }
                      }
                 }
             }

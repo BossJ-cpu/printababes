@@ -99,6 +99,11 @@ class PdfTemplateController extends Controller
         try {
 // Initialize FPDI in Points ('pt') to match PDF native units and avoid scaling mismatches
         $pdf = new \setasign\Fpdi\Fpdi('P', 'pt');
+        
+        // Disable Auto Page Break and Margins to Ensure Absolute Positioning works anywhere
+        $pdf->SetAutoPageBreak(false);
+        $pdf->SetMargins(0, 0, 0);
+        
         $pageCount = $pdf->setSourceFile($pdfPath);
 
         for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {
@@ -123,21 +128,28 @@ class PdfTemplateController extends Controller
                      // Get value from request or use placeholder
                      $text = $request->input($fieldName, '');
                      
-                     if (!empty($text)) {
-                        $x = $config['x'] ?? 0;
-                        $y = $config['y'] ?? 0;
-                        $fontSize = $config['size'] ?? 12;
-                        
-                        $pdf->SetFontSize($fontSize);
-                        $pdf->SetXY($x, $y);
-                        // Cell(width, height, text, border, ln, align)
-                        // Width 0 = extends to right margin
-                        // Height = fontSize (approx) to ensure baseline is handled correctly relative to XY
-                        $pdf->Cell(0, $fontSize, $text, 0, 0, 'L');
-                     }
-                     }
-                }
+                     // Force string type
+                     $text = (string)$text;
+
+                     $x = floatval($config['x'] ?? 0);
+                     $y = floatval($config['y'] ?? 0);
+                     $fontSize = floatval($config['size'] ?? 12);
+                     
+                     // Debug logging to help identify position issues
+                     \Illuminate\Support\Facades\Log::info("PDF Field: $fieldName", ['x' => $x, 'y' => $y, 'text' => $text, 'page' => $pageNo]);
+
+                     $pdf->SetFontSize($fontSize);
+                     
+                     // Use Text() for absolute positioning.
+                     // Frontend coordinates are Top-Left of the box.
+                     // PDF Text() uses Baseline-Left.
+                     // Shift Y down by approx 80% of font size to align Baseline.
+                     $baselineOffset = $fontSize * 0.8;
+                     
+                     $pdf->Text($x, $y + $baselineOffset, $text);
+                 }
             }
+        }
 
             return response($pdf->Output('S'), 200)
                 ->header('Content-Type', 'application/pdf');

@@ -67,43 +67,50 @@ class PdfTemplateController extends Controller
         // Full path to file
         $pdfPath = Storage::disk('public')->path($template->file_path);
         
-        // Initialize FPDI
-        $pdf = new \setasign\Fpdi\Fpdi();
-        $pageCount = $pdf->setSourceFile($pdfPath);
+        try {
+            // Initialize FPDI
+            $pdf = new \setasign\Fpdi\Fpdi();
+            $pageCount = $pdf->setSourceFile($pdfPath);
 
-        for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {
-            $templateId = $pdf->importPage($pageNo);
-            $size = $pdf->getTemplateSize($templateId);
-            
-            $pdf->AddPage($size['orientation'], array($size['width'], $size['height']));
-            $pdf->useTemplate($templateId);
-            
-            $pdf->SetFont('Arial', '', 12);
-            $pdf->SetTextColor(0, 0, 0);
+            for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {
+                $templateId = $pdf->importPage($pageNo);
+                $size = $pdf->getTemplateSize($templateId);
+                
+                $pdf->AddPage($size['orientation'], array($size['width'], $size['height']));
+                $pdf->useTemplate($templateId);
+                
+                $pdf->SetFont('Arial', '', 12);
+                $pdf->SetTextColor(0, 0, 0);
 
-            $fieldsConfig = $template->fields_config ?? [];
-            if (is_string($fieldsConfig)) {
-                $fieldsConfig = json_decode($fieldsConfig, true);
+                $fieldsConfig = $template->fields_config ?? [];
+                if (is_string($fieldsConfig)) {
+                    $fieldsConfig = json_decode($fieldsConfig, true);
+                }
+
+                foreach ($fieldsConfig as $fieldName => $config) {
+                     if (($config['page'] ?? 1) == $pageNo) {
+                         // Get value from request or use placeholder
+                         $text = $request->input($fieldName, '');
+                         
+                         $x = $config['x'] ?? 0;
+                         $y = $config['y'] ?? 0;
+                         $fontSize = $config['size'] ?? 12;
+                         
+                         $pdf->SetXY($x, $y);
+                         $pdf->SetFontSize($fontSize);
+                         $pdf->Write(0, $text);
+                     }
+                }
             }
 
-            foreach ($fieldsConfig as $fieldName => $config) {
-                 if (($config['page'] ?? 1) == $pageNo) {
-                     // Get value from request or use placeholder
-                     $text = $request->input($fieldName, '');
-                     
-                     $x = $config['x'] ?? 0;
-                     $y = $config['y'] ?? 0;
-                     $fontSize = $config['size'] ?? 12;
-                     
-                     $pdf->SetXY($x, $y);
-                     $pdf->SetFontSize($fontSize);
-                     $pdf->Write(0, $text);
-                 }
-            }
+            return response($pdf->Output('S'), 200)
+                ->header('Content-Type', 'application/pdf');
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("PDF Preview Error: " . $e->getMessage());
+            return response()->json([
+                'error' => 'Error processing PDF: ' . $e->getMessage()
+            ], 422);
         }
-
-        return response($pdf->Output('S'), 200)
-            ->header('Content-Type', 'application/pdf');
     }
 
     public function destroy($key)

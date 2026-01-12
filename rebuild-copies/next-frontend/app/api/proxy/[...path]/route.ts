@@ -4,7 +4,8 @@ export const dynamic = 'force-dynamic'; // Ensure this route is never cached
 
 async function handleRequest(req: NextRequest, { params }: { params: Promise<{ path: string[] }> }) {
     const resolvedParams = await params;
-    const path = resolvedParams.path.join('/');
+    // URL Encode each segment to handle spaces/special chars in filenames
+    const path = resolvedParams.path.map(p => encodeURIComponent(p)).join('/');
     const query = req.nextUrl.search;
     
     // The actual backend URL (Tunnel)

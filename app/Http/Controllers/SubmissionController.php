@@ -35,7 +35,9 @@ class SubmissionController extends Controller
 
         $pdfPath = \Illuminate\Support\Facades\Storage::disk('public')->path($template->file_path);
         
-        $pdf = new \setasign\Fpdi\Fpdi();
+        // Initialize FPDI with millimeters as unit (consistent with other controllers)
+        $pdf = new \setasign\Fpdi\Fpdi('P', 'mm');
+        $pdf->SetAutoPageBreak(false);
         $pageCount = $pdf->setSourceFile($pdfPath);
 
         for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {
@@ -58,13 +60,14 @@ class SubmissionController extends Controller
                      // If keys match (name, email), use them.
                      $value = $submission->$fieldName ?? '';
                      
-                     $x = $config['x'] ?? 0;
-                     $y = $config['y'] ?? 0;
-                     $fontSize = $config['size'] ?? 12;
+                     $x = floatval($config['x'] ?? 0);
+                     $y = floatval($config['y'] ?? 0);
+                     $fontSize = floatval($config['size'] ?? 12);
                      
-                     $pdf->SetXY($x, $y);
                      $pdf->SetFontSize($fontSize);
-                     $pdf->Write(0, (string)$value);
+                     
+                     // Use Text method for exact positioning (consistent with preview)
+                     $pdf->Text($x, $y, (string)$value);
                  }
             }
         }

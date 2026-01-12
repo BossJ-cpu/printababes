@@ -42,8 +42,8 @@ class CoordinateTestController extends Controller
                 'pdf_path' => $pdfPath
             ]);
             
-            // Initialize FPDI with millimeters as unit
-            $pdf = new \setasign\Fpdi\Fpdi('P', 'mm', 'A4');
+            // Initialize FPDI with millimeters as unit (consistent with other controllers)
+            $pdf = new \setasign\Fpdi\Fpdi('P', 'mm');
             $pdf->SetAutoPageBreak(false);
             
             // Check if file exists and is readable
@@ -75,11 +75,10 @@ class CoordinateTestController extends Controller
                     $pdf->Line($testX - 5, $testY, $testX + 5, $testY); // Horizontal
                     $pdf->Line($testX, $testY - 5, $testX, $testY + 5); // Vertical
                     
-                    // Add coordinate text
+                    // Add coordinate text using Text method for consistency
                     $pdf->SetFont('Arial', 'B', 8);
                     $pdf->SetTextColor(255, 0, 0);
-                    $pdf->SetXY($testX + 6, $testY - 2);
-                    $pdf->Cell(0, 4, "X:{$testX}mm Y:{$testY}mm", 0, 0, 'L');
+                    $pdf->Text($testX + 6, $testY - 2, "X:{$testX}mm Y:{$testY}mm");
                     
                     // Add center dot
                     $pdf->SetFillColor(255, 0, 0);

@@ -117,11 +117,9 @@ class PdfTemplateController extends Controller
                 'file_exists' => file_exists($pdfPath)
             ]);
             
-            // Initialize FPDI (Defaults to 'mm', A4)
-            // We use 'mm' to match the legacy data and standard PDF editors.
-            // Using 'mm' fixes the issue where legacy layouts (saved in mm) 
-            // appeared tiny/blank when rendered in 'pt'.
-            $pdf = new \setasign\Fpdi\Fpdi();
+            // Initialize FPDI with explicit millimeters unit for consistency
+            // We use 'mm' to match the coordinate system used in the editor
+            $pdf = new \setasign\Fpdi\Fpdi('P', 'mm');
             
             // Disable Auto Page Break to prevent unwanted page jumps at bottom
             $pdf->SetAutoPageBreak(false);
@@ -162,10 +160,7 @@ class PdfTemplateController extends Controller
                          
                          $pdf->SetFontSize($fontSize);
                         
-                        // Set coordinate to exact position
-                        $pdf->SetXY($x, $y);
-
-                        // Use Text instead of Cell for precise positioning
+                        // Use Text method for exact positioning at specified coordinates
                         // Text places text exactly at the coordinates without additional offsets
                         $pdf->Text($x, $y, $text);
                      }

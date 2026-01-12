@@ -28,6 +28,7 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
     const [numPages, setNumPages] = useState<number>(0);
     const [pageDims, setPageDims] = useState<Record<number, {width: number, height: number}>>({});
     const [hoverCoords, setHoverCoords] = useState<{x: number, y: number} | null>(null);
+    const [clickState, setClickState] = useState<{shouldPreventClick: boolean; timeStamp: number}>({shouldPreventClick: false, timeStamp: 0});
     
     // Dragging state
     const [dragState, setDragState] = useState<{
@@ -45,6 +46,15 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
         initialFieldX: 0,
         initialFieldY: 0
     });
+
+    // Utility function to ensure consistent positioning calculations
+    const calculateFieldPosition = (fieldX: number, fieldY: number, pageDims: {width: number, height: number}) => {
+        // Field coordinates are in millimeters, convert to percentages for CSS positioning
+        const leftPercent = (fieldX / pageDims.width) * 100;
+        const topPercent = (fieldY / pageDims.height) * 100;
+        
+        return { leftPercent, topPercent };
+    };
 
     const onPageLoad = (page: any) => {
         // page.originalWidth/Height are in points (1/72 inch)
@@ -75,24 +85,23 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
         const clickX = e.clientX - rect.left;
         const clickY = e.clientY - rect.top;
         
-        // The PDF is rendered at a fixed width of 600px
-        // Calculate the actual rendered height based on PDF aspect ratio
-        const renderWidth = 600;
-        const renderHeight = (dims.height / dims.width) * renderWidth;
+        // Use actual rendered dimensions from the container instead of fixed 600px
+        const actualRenderWidth = rect.width;
+        const actualRenderHeight = rect.height;
         
-        // Convert click pixels to millimeters using the render dimensions
-        const mmX = (clickX / renderWidth) * dims.width;
-        const mmY = (clickY / renderHeight) * dims.height;
+        // Convert click pixels to millimeters using the actual rendered dimensions
+        const mmX = (clickX / actualRenderWidth) * dims.width;
+        const mmY = (clickY / actualRenderHeight) * dims.height;
         
         // Round to 1 decimal place for precision
         const resultX = parseFloat(mmX.toFixed(1));
         const resultY = parseFloat(mmY.toFixed(1));
         
+        // Debug logging (can be disabled)
         // console.log('Coordinate calculation:', {
         //     pageNumber,
         //     clickPixels: { x: clickX, y: clickY },
-        //     renderSize: { width: renderWidth, height: renderHeight },
-        //     containerSize: { width: rect.width, height: rect.height },
+        //     actualRenderSize: { width: actualRenderWidth, height: actualRenderHeight },
         //     pageDimsMm: dims,
         //     resultMm: { x: resultX, y: resultY }
         // });
@@ -105,8 +114,19 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
     };
 
     const handlePageClick = (e: React.MouseEvent<HTMLDivElement>, pageNumber: number) => {
-        // Don't add field if we're dragging
-        if (dragState.isDragging) return;
+        // Don't add field if we're dragging or should prevent click
+        if (dragState.isDragging || clickState.shouldPreventClick) {
+            // Reset prevent click flag after a short delay
+            if (clickState.shouldPreventClick) {
+                setTimeout(() => setClickState({shouldPreventClick: false, timeStamp: Date.now()}), 100);
+            }
+            return;
+        }
+        
+        // Check if click is too soon after a drag ended (prevents accidental clicks after drag)
+        if (Date.now() - clickState.timeStamp < 150) {
+            return;
+        }
         
         const coords = getCoordinates(e, pageNumber);
         
@@ -123,6 +143,9 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
         
         const rect = e.currentTarget.parentElement?.getBoundingClientRect();
         if (!rect) return;
+        
+        // Prevent clicks for a short duration
+        setClickState({shouldPreventClick: true, timeStamp: Date.now()});
         
         setDragState({
             isDragging: true,
@@ -145,19 +168,20 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
         const deltaX = e.clientX - dragState.startX;
         const deltaY = e.clientY - dragState.startY;
         
-        // Find the page container
+        // Find the page container and get its actual dimensions
         const pageContainer = document.querySelector(`[data-page-number="${template.fields_config[dragState.fieldKey]?.page || 1}"]`) as HTMLElement;
         if (!pageContainer) return;
         
+        const pageRect = pageContainer.getBoundingClientRect();
         const fieldPage = template.fields_config[dragState.fieldKey]?.page || 1;
         const dims = pageDims[fieldPage] || { width: 210, height: 297 };
         
-        // Convert pixel delta to millimeter delta using same logic as coordinate calculation
-        const renderWidth = 600;
-        const renderHeight = (dims.height / dims.width) * renderWidth;
+        // Convert pixel delta to millimeter delta using actual rendered dimensions
+        const actualRenderWidth = pageRect.width;
+        const actualRenderHeight = pageRect.height;
         
-        const mmDeltaX = (deltaX / renderWidth) * dims.width;
-        const mmDeltaY = (deltaY / renderHeight) * dims.height;
+        const mmDeltaX = (deltaX / actualRenderWidth) * dims.width;
+        const mmDeltaY = (deltaY / actualRenderHeight) * dims.height;
         
         // Calculate new position with bounds checking
         const newX = Math.max(0, Math.min(dims.width, dragState.initialFieldX + mmDeltaX));
@@ -169,6 +193,8 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
     }, [dragState, template, pageDims, onUpdateField]);
 
     const handleGlobalMouseUp = useCallback(() => {
+        const wasDragging = dragState.isDragging;
+        
         setDragState({
             isDragging: false,
             fieldKey: null,
@@ -178,10 +204,15 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
             initialFieldY: 0
         });
         
+        // Set timestamp when drag ends to prevent immediate clicks
+        if (wasDragging) {
+            setClickState({shouldPreventClick: false, timeStamp: Date.now()});
+        }
+        
         // Remove global event listeners
         document.removeEventListener('mousemove', handleGlobalMouseMove);
         document.removeEventListener('mouseup', handleGlobalMouseUp);
-    }, [handleGlobalMouseMove]);
+    }, [handleGlobalMouseMove, dragState.isDragging]);
 
     // Cleanup effect for drag listeners
     useEffect(() => {
@@ -240,8 +271,8 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
                                         borderRadius: '4px',
                                         zIndex: 50,
                                         transform: 'translate(-50%, -100%)',
-                                        left: (hoverCoords.x / dims.width) * 100 + '%', 
-                                        top: (hoverCoords.y / dims.height) * 100 + '%',
+                                        left: calculateFieldPosition(hoverCoords.x, hoverCoords.y, dims).leftPercent + '%',
+                                        top: calculateFieldPosition(hoverCoords.x, hoverCoords.y, dims).topPercent + '%',
                                         marginTop: '-8px',
                                         whiteSpace: 'nowrap',
                                         boxShadow: '0 2px 8px rgba(0,0,0,0.3)'
@@ -257,9 +288,8 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
                                 const fieldPage = conf.page || 1;
                                 if (fieldPage !== pageNumber) return null;
                                 
-                                // Calculate position as percentage - same logic as coordinate calculation
-                                const leftPercent = (conf.x / dims.width) * 100;
-                                const topPercent = (conf.y / dims.height) * 100;
+                                // Calculate position using utility function for consistency
+                                const { leftPercent, topPercent } = calculateFieldPosition(conf.x, conf.y, dims);
                                 
                                 return (
                                 <div key={key}>

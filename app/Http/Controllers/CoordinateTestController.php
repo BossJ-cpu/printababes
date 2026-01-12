@@ -19,24 +19,44 @@ class CoordinateTestController extends Controller
 
             $pdfPath = Storage::disk('public')->path($template->file_path);
             
-            // Initialize FPDI with millimeters
-            $pdf = new \setasign\Fpdi\Fpdi();
-            $pdf->SetAutoPageBreak(false);
-            
-            $pageCount = $pdf->setSourceFile($pdfPath);
-            
-            // Get test coordinates from request
+            // Validate coordinates
             $testX = floatval($request->input('x', 50)); // Default to 50mm
             $testY = floatval($request->input('y', 50)); // Default to 50mm
             $testPage = intval($request->input('page', 1)); // Default to page 1
+            
+            // Validate input ranges
+            if ($testX < 0 || $testX > 500 || $testY < 0 || $testY > 500) {
+                return response()->json(['error' => 'Invalid coordinates: X and Y must be between 0 and 500mm'], 400);
+            }
+            
+            if ($testPage < 1 || $testPage > 20) {
+                return response()->json(['error' => 'Invalid page: must be between 1 and 20'], 400);
+            }
             
             // Log the coordinates being received
             \Illuminate\Support\Facades\Log::info("Coordinate Test Debug", [
                 'received_x' => $testX,
                 'received_y' => $testY,
                 'received_page' => $testPage,
-                'template_key' => $key
+                'template_key' => $key,
+                'pdf_path' => $pdfPath
             ]);
+            
+            // Initialize FPDI with millimeters as unit
+            $pdf = new \setasign\Fpdi\Fpdi('P', 'mm', 'A4');
+            $pdf->SetAutoPageBreak(false);
+            
+            // Check if file exists and is readable
+            if (!file_exists($pdfPath) || !is_readable($pdfPath)) {
+                throw new \Exception('PDF file not readable: ' . $pdfPath);
+            }
+            
+            $pageCount = $pdf->setSourceFile($pdfPath);
+            
+            // Validate that requested page exists
+            if ($testPage > $pageCount) {
+                return response()->json(['error' => "Page {$testPage} does not exist in PDF (only {$pageCount} pages)"], 400);
+            }
             
             for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {
                 $templateId = $pdf->importPage($pageNo);
@@ -72,7 +92,13 @@ class CoordinateTestController extends Controller
                 ->header('Content-Disposition', 'inline; filename="coordinate_test.pdf"');
                 
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error("Coordinate test failed: " . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error("Coordinate test failed: " . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+                'x' => $request->input('x'),
+                'y' => $request->input('y'),
+                'page' => $request->input('page'),
+                'key' => $key
+            ]);
             return response()->json(['error' => 'Test failed: ' . $e->getMessage()], 500);
         }
     }

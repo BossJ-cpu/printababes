@@ -99,16 +99,24 @@ class PdfTemplateController extends Controller
 
     public function preview(Request $request, $key)
     {
-        $template = PdfTemplate::where('key', $key)->firstOrFail();
-        
-        if (!$template->file_path || !Storage::disk('public')->exists($template->file_path)) {
-            return response()->json(['error' => 'PDF not found'], 404);
-        }
-
-        // Full path to file
-        $pdfPath = Storage::disk('public')->path($template->file_path);
-        
         try {
+            $template = PdfTemplate::where('key', $key)->firstOrFail();
+            
+            if (!$template->file_path || !Storage::disk('public')->exists($template->file_path)) {
+                return response()->json(['error' => 'PDF not found'], 404);
+            }
+
+            // Full path to file
+            $pdfPath = Storage::disk('public')->path($template->file_path);
+            
+            // Log the attempt
+            \Illuminate\Support\Facades\Log::info("PDF Preview attempt", [
+                'key' => $key,
+                'file_path' => $template->file_path,
+                'pdf_path' => $pdfPath,
+                'file_exists' => file_exists($pdfPath)
+            ]);
+            
             // Initialize FPDI (Defaults to 'mm', A4)
             // We use 'mm' to match the legacy data and standard PDF editors.
             // Using 'mm' fixes the issue where legacy layouts (saved in mm) 
@@ -172,11 +180,20 @@ class PdfTemplateController extends Controller
 
             return response($pdf->Output('S'), 200)
                 ->header('Content-Type', 'application/pdf');
+                
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error("PDF Preview Error: " . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error("PDF Preview Error", [
+                'key' => $key,
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
             return response()->json([
-                'error' => 'Error processing PDF: ' . $e->getMessage()
-            ], 422);
+                'error' => 'Error processing PDF: ' . $e->getMessage(),
+                'details' => 'Check server logs for more information'
+            ], 500);
         }
     }
 

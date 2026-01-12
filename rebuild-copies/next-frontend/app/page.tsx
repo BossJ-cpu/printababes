@@ -126,15 +126,15 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-blue-800">
+    <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-black/10"></div>
+      <div className="relative overflow-hidden bg-white border-b border-gray-200">
+        <div className="absolute inset-0 bg-gray-50/50"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center">
-          <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 animate-fade-in">
-            Modern PDF Generator
+          <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6 animate-fade-in">
+            PDF Generator
           </h1>
-          <p className="text-xl md:text-2xl text-blue-100 mb-8 max-w-3xl mx-auto animate-slide-up">
+          <p className="text-xl md:text-2xl text-gray-600 mb-8 max-w-3xl mx-auto animate-slide-up">
             Streamline your workflow with our dual-purpose platform - submit data and generate beautiful PDFs in one place
           </p>
         </div>
@@ -147,21 +147,21 @@ export default function HomePage() {
           {/* Left Side - Data Submission Form */}
           <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8 animate-slide-up">
             <div className="flex items-center mb-6">
-              <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-green-600 rounded-xl flex items-center justify-center mr-4">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-12 h-12 bg-gray-100 border border-gray-200 rounded-xl flex items-center justify-center mr-4">
+                <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-gray-800">Data Submission</h2>
+                <h2 className="text-2xl font-bold text-gray-900">Data Submission</h2>
                 <p className="text-gray-600">Submit your information to our database</p>
               </div>
             </div>
 
             {/* Instructions */}
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-              <h3 className="font-semibold text-green-800 mb-2">How to use:</h3>
-              <ul className="text-sm text-green-700 space-y-1">
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
+              <h3 className="font-semibold text-gray-800 mb-2">How to use:</h3>
+              <ul className="text-sm text-gray-700 space-y-1">
                 <li>1. Fill in your name and email (required)</li>
                 <li>2. Add an optional message</li>
                 <li>3. Submit to save your data</li>
@@ -212,7 +212,7 @@ export default function HomePage() {
                   rows={3}
                   value={formData.message}
                   onChange={(e) => setFormData({...formData, message: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 resize-none"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all duration-200 resize-none"
                   placeholder="Enter an optional message"
                 />
               </div>
@@ -220,7 +220,7 @@ export default function HomePage() {
               <button
                 type="submit"
                 disabled={submissionLoading}
-                className="w-full bg-gradient-to-r from-green-500 to-green-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-green-600 hover:to-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl"
+                className="w-full bg-gray-900 text-white py-3 px-6 rounded-lg font-semibold hover:bg-gray-800 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl"
               >
                 {submissionLoading ? (
                   <span className="flex items-center justify-center">
@@ -239,8 +239,8 @@ export default function HomePage() {
             {submissionMessage && (
               <div className={`mt-4 p-3 rounded-lg text-sm ${
                 submissionMessage.includes('success') 
-                  ? 'bg-green-100 text-green-700 border border-green-200' 
-                  : 'bg-red-100 text-red-700 border border-red-200'
+                  ? 'bg-gray-100 text-gray-800 border border-gray-300' 
+                  : 'bg-gray-200 text-gray-900 border border-gray-400'
               }`}>
                 {submissionMessage}
               </div>
@@ -267,7 +267,7 @@ export default function HomePage() {
             <div className="mt-6 pt-4 border-t border-gray-200">
               <Link
                 href="/simple-form"
-                className="text-green-600 hover:text-green-700 text-sm font-medium flex items-center"
+                className="text-gray-700 hover:text-gray-900 text-sm font-medium flex items-center"
               >
                 Go to dedicated form page
                 <svg className="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -280,21 +280,21 @@ export default function HomePage() {
           {/* Right Side - PDF Generation */}
           <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8 animate-slide-up">
             <div className="flex items-center mb-6">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl flex items-center justify-center mr-4">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-12 h-12 bg-gray-100 border border-gray-200 rounded-xl flex items-center justify-center mr-4">
+                <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-gray-800">PDF Generator</h2>
+                <h2 className="text-2xl font-bold text-gray-900">PDF Generator</h2>
                 <p className="text-gray-600">Generate PDFs from your submitted data</p>
               </div>
             </div>
 
             {/* Instructions */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-              <h3 className="font-semibold text-blue-800 mb-2">How to use:</h3>
-              <ul className="text-sm text-blue-700 space-y-1">
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
+              <h3 className="font-semibold text-gray-800 mb-2">How to use:</h3>
+              <ul className="text-sm text-gray-700 space-y-1">
                 <li>1. First, create PDF templates using the editor</li>
                 <li>2. Submit data using the form on the left</li>
                 <li>3. Select a submission and template below</li>
@@ -346,7 +346,7 @@ export default function HomePage() {
               <button
                 onClick={handleGeneratePdf}
                 disabled={pdfLoading || !selectedSubmissionId || !selectedTemplateKey}
-                className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-blue-600 hover:to-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl"
+                className="w-full bg-gray-900 text-white py-3 px-6 rounded-lg font-semibold hover:bg-gray-800 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl"
               >
                 {pdfLoading ? (
                   <span className="flex items-center justify-center">
@@ -378,7 +378,7 @@ export default function HomePage() {
             <div className="mt-6 pt-4 border-t border-gray-200 space-y-2">
               <Link
                 href="/pdf-editor"
-                className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center"
+                className="text-gray-700 hover:text-gray-900 text-sm font-medium flex items-center"
               >
                 Create/Edit PDF Templates
                 <svg className="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -391,43 +391,43 @@ export default function HomePage() {
 
         {/* Feature Showcase */}
         <div className="mt-16 text-center">
-          <h2 className="text-3xl font-bold text-white mb-8">Why Choose Our Platform?</h2>
+          <h2 className="text-3xl font-bold text-gray-900 mb-8">Why Choose Our Platform?</h2>
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 text-white">
-              <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-lg mx-auto mb-4 flex items-center justify-center">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+              <div className="w-12 h-12 bg-gray-100 border border-gray-200 rounded-lg mx-auto mb-4 flex items-center justify-center">
+                <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
               </div>
-              <h3 className="text-xl font-semibold mb-2">Lightning Fast</h3>
-              <p className="text-blue-100">Generate professional PDFs in seconds with our optimized processing engine.</p>
+              <h3 className="text-xl font-semibold mb-2 text-gray-900">Lightning Fast</h3>
+              <p className="text-gray-600">Generate professional PDFs in seconds with our optimized processing engine.</p>
             </div>
 
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 text-white">
-              <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-teal-500 rounded-lg mx-auto mb-4 flex items-center justify-center">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+              <div className="w-12 h-12 bg-gray-100 border border-gray-200 rounded-lg mx-auto mb-4 flex items-center justify-center">
+                <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
               </div>
-              <h3 className="text-xl font-semibold mb-2">Easy to Use</h3>
-              <p className="text-blue-100">Intuitive interface designed for both beginners and power users.</p>
+              <h3 className="text-xl font-semibold mb-2 text-gray-900">Easy to Use</h3>
+              <p className="text-gray-600">Intuitive interface designed for both beginners and power users.</p>
             </div>
 
-            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 text-white">
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-400 to-pink-500 rounded-lg mx-auto mb-4 flex items-center justify-center">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+              <div className="w-12 h-12 bg-gray-100 border border-gray-200 rounded-lg mx-auto mb-4 flex items-center justify-center">
+                <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
                 </svg>
               </div>
-              <h3 className="text-xl font-semibold mb-2">Fully Customizable</h3>
-              <p className="text-blue-100">Create templates that match your exact requirements and branding.</p>
+              <h3 className="text-xl font-semibold mb-2 text-gray-900">Fully Customizable</h3>
+              <p className="text-gray-600">Create templates that match your exact requirements and branding.</p>
             </div>
           </div>
         </div>
 
         {/* Footer */}
-        <footer className="mt-16 text-center text-white/80">
-          <div className="border-t border-white/20 pt-8">
+        <footer className="mt-16 text-center text-gray-500">
+          <div className="border-t border-gray-200 pt-8">
             <p className="text-sm">
               © 2026 Printables. Built with Next.js, React, and modern web technologies.
             </p>

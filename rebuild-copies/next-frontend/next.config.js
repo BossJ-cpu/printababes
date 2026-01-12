@@ -7,6 +7,10 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || '/api/proxy',
   },
+  experimental: {
+    // Enable CSS support
+    appDir: true,
+  },
 }
 
 module.exports = nextConfig

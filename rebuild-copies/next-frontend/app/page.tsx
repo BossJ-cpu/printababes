@@ -131,10 +131,10 @@ export default function HomePage() {
       <div className="relative overflow-hidden">
         <div className="absolute inset-0 bg-black/10"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center">
-          <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 animate-fade-in">
+          <h1 className="text-4xl md:text-6xl font-bold text-white mb-6">
             Modern PDF Generator
           </h1>
-          <p className="text-xl md:text-2xl text-blue-100 mb-8 max-w-3xl mx-auto animate-slide-up">
+          <p className="text-xl md:text-2xl text-blue-100 mb-8 max-w-3xl mx-auto">
             Streamline your workflow with our dual-purpose platform - submit data and generate beautiful PDFs in one place
           </p>
         </div>
@@ -145,7 +145,7 @@ export default function HomePage() {
         <div className="grid lg:grid-cols-2 gap-8">
           
           {/* Left Side - Data Submission Form */}
-          <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8 animate-slide-up">
+          <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8">
             <div className="flex items-center mb-6">
               <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-green-600 rounded-xl flex items-center justify-center mr-4">
                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -278,7 +278,7 @@ export default function HomePage() {
           </div>
 
           {/* Right Side - PDF Generation */}
-          <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8 animate-slide-up">
+          <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8">
             <div className="flex items-center mb-6">
               <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl flex items-center justify-center mr-4">
                 <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">

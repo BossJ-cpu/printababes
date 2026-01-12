@@ -126,7 +126,12 @@ class PdfTemplateController extends Controller
             foreach ($fieldsConfig as $fieldName => $config) {
                  if (($config['page'] ?? 1) == $pageNo) {
                      // Get value from request or use placeholder
-                     $text = $request->input($fieldName, '');
+                     $text = $request->input($fieldName);
+                     
+                     // Fallback: If no value provided in request, show the field name as placeholder
+                     if ($text === null || $text === '') {
+                        $text = "[$fieldName]";
+                     }
                      
                      // Force string type
                      $text = (string)$text;
@@ -135,18 +140,15 @@ class PdfTemplateController extends Controller
                      $y = floatval($config['y'] ?? 0);
                      $fontSize = floatval($config['size'] ?? 12);
                      
-                     // Debug logging to help identify position issues
-                     \Illuminate\Support\Facades\Log::info("PDF Field: $fieldName", ['x' => $x, 'y' => $y, 'text' => $text, 'page' => $pageNo]);
+                     \Illuminate\Support\Facades\Log::info("Printing Field: $fieldName at ($x, $y) with text: $text");
 
                      $pdf->SetFontSize($fontSize);
+                     $pdf->SetXY($x, $y);
                      
-                     // Use Text() for absolute positioning.
-                     // Frontend coordinates are Top-Left of the box.
-                     // PDF Text() uses Baseline-Left.
-                     // Shift Y down by approx 80% of font size to align Baseline.
-                     $baselineOffset = $fontSize * 0.8;
-                     
-                     $pdf->Text($x, $y + $baselineOffset, $text);
+                     // Cell is more robust than Text() for simple placement
+                     // Width=0 means extend to right margin (but we don't care, we just want text start)
+                     // Height is set to font size to help vertical alignment
+                     $pdf->Cell(0, $fontSize, $text, 0, 0, 'L');
                  }
             }
         }

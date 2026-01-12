@@ -100,17 +100,25 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
         const resultX = parseFloat(mmX.toFixed(1));
         const resultY = parseFloat(mmY.toFixed(1));
         
-        // Debug logging (temporarily enabled for debugging)
-        console.log('Coordinate calculation:', {
-            pageNumber,
-            clickPixels: { x: clickX, y: clickY },
-            actualRenderSize: { width: actualRenderWidth, height: actualRenderHeight },
-            pageDimsMm: dims,
-            usingBackendDims: !!backendDimensions?.[pageNumber],
-            backendDimAvailable: backendDimensions ? Object.keys(backendDimensions) : 'none',
-            calculatedDimAvailable: pageDims ? Object.keys(pageDims) : 'none',
-            resultMm: { x: resultX, y: resultY }
+        // COMPREHENSIVE DEBUG LOGGING
+        console.log('=== COORDINATE CALCULATION DEBUG ===');
+        console.log('Page:', pageNumber);
+        console.log('Click pixels:', { x: clickX, y: clickY });
+        console.log('Container rect:', { 
+            width: actualRenderWidth, 
+            height: actualRenderHeight,
+            left: rect.left,
+            top: rect.top 
         });
+        console.log('PDF dimensions (mm):', dims);
+        console.log('Using backend dimensions:', !!backendDimensions?.[pageNumber]);
+        console.log('Scale factors:', {
+            scaleX: clickX / actualRenderWidth,
+            scaleY: clickY / actualRenderHeight
+        });
+        console.log('Raw mm calculation:', { x: mmX, y: mmY });
+        console.log('Final result (mm):', { x: resultX, y: resultY });
+        console.log('===================================');
         
         return { x: resultX, y: resultY };
     };
@@ -135,6 +143,14 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
         }
         
         const coords = getCoordinates(e, pageNumber);
+        
+        // Test coordinate echo first to verify communication
+        if (process.env.NODE_ENV === 'development') {
+            fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/debug/coordinate-echo?x=${coords.x}&y=${coords.y}&page=${pageNumber}`)
+                .then(r => r.json())
+                .then(data => console.log('Coordinate echo test:', data))
+                .catch(err => console.error('Coordinate echo failed:', err));
+        }
         
         if (coordinateTestMode && onCoordinateTest) {
             onCoordinateTest(coords.x, coords.y, pageNumber);

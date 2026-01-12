@@ -16,6 +16,13 @@ Route::get('pdf-templates', [PdfTemplateController::class, 'index']);
 Route::get('pdf-templates/{key}/preview', [PdfTemplateController::class, 'preview']);
 Route::get('pdf-templates/{key}/dimensions', [PdfTemplateController::class, 'getDimensions']);
 Route::get('pdf-templates/{key}/coordinate-test', [CoordinateTestController::class, 'testCoordinate']);
+Route::get('debug/coordinate-echo', function(Illuminate\Http\Request $request) {
+    return response()->json([
+        'received' => $request->all(),
+        'timestamp' => now(),
+        'message' => 'Coordinate echo test'
+    ]);
+});
 Route::get('pdf-templates/{key}', [PdfTemplateController::class, 'show']);
 Route::put('pdf-templates/{key}', [PdfTemplateController::class, 'update']);
 Route::post('pdf-templates/{key}/upload', [PdfTemplateController::class, 'upload']);

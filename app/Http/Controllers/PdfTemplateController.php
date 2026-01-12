@@ -131,12 +131,15 @@ class PdfTemplateController extends Controller
                 $size = $pdf->getTemplateSize($templateId);
                 
                 // Log the actual PDF dimensions for debugging
-                \Illuminate\Support\Facades\Log::info("PDF Template Dimensions", [
+                \Illuminate\Support\Facades\Log::info("=== PDF TEMPLATE DIMENSIONS ===");
+                \Illuminate\Support\Facades\Log::info("PDF Page Info", [
+                    'template_key' => $key,
                     'page' => $pageNo,
                     'width_mm' => $size['width'],
                     'height_mm' => $size['height'],
                     'orientation' => $size['orientation']
                 ]);
+                \Illuminate\Support\Facades\Log::info("================================");
                 
                 // AddPage using the imported size
                 $pdf->AddPage($size['orientation'], array($size['width'], $size['height']));

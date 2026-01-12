@@ -260,11 +260,15 @@ export default function PdfEditorPage() {
       });
       
       // Fetch backend PDF dimensions for accurate coordinate mapping
+      console.log('=== FETCHING BACKEND DIMENSIONS ===');
       const dimensions = await fetchPdfDimensions(key);
       if (dimensions) {
         setBackendDimensions(dimensions);
-        console.log('Loaded backend dimensions for template:', key, dimensions);
+        console.log('Successfully loaded backend dimensions for template:', key, dimensions);
+      } else {
+        console.warn('Failed to load backend dimensions, using calculated dimensions');
       }
+      console.log('==================================');
       
       // Trigger preview after loading
       setTimeout(() => {
@@ -540,13 +544,15 @@ export default function PdfEditorPage() {
   };
 
   const handleCoordinateTest = async (x: number, y: number, pageNumber: number) => {
-    console.log('Sending coordinate test:', { x, y, pageNumber, templateKey: template.key });
+    console.log('=== COORDINATE TEST DEBUG ===');
+    console.log('Frontend sending coordinates:', { x, y, pageNumber, templateKey: template.key });
     
     try {
       // Generate test PDF with crosshair at clicked coordinates
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/pdf-templates/${encodeURIComponent(template.key)}/coordinate-test?x=${x}&y=${y}&page=${pageNumber}`,
-        {
+      const testUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/pdf-templates/${encodeURIComponent(template.key)}/coordinate-test?x=${x}&y=${y}&page=${pageNumber}`;
+      console.log('Test URL:', testUrl);
+      
+      const response = await fetch(testUrl, {
           headers: {
             'Bypass-Tunnel-Reminder': 'true',
             'ngrok-skip-browser-warning': 'true'
@@ -554,21 +560,26 @@ export default function PdfEditorPage() {
         }
       );
 
+      console.log('Test response status:', response.status);
+      
       if (response.ok) {
         const blob = await response.blob();
-        const testUrl = URL.createObjectURL(blob);
+        const testPdfUrl = URL.createObjectURL(blob);
         
         // Open the test PDF in a new tab
-        window.open(testUrl, '_blank');
+        window.open(testPdfUrl, '_blank');
         
         showNotif(`Test coordinate placed at X: ${x.toFixed(1)}mm, Y: ${y.toFixed(1)}mm on page ${pageNumber}`, 'success');
       } else {
+        const errorText = await response.text();
+        console.error('Test response error:', errorText);
         throw new Error('Failed to generate coordinate test');
       }
     } catch (error) {
       console.error('Coordinate test error:', error);
       showNotif('Failed to generate coordinate test PDF', 'error');
     }
+    console.log('=============================');
   };
 
   const handleRemoveField = (fieldName: string) => {

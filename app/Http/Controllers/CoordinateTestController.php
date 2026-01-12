@@ -64,15 +64,30 @@ class CoordinateTestController extends Controller
                 $size = $pdf->getTemplateSize($templateId);
                 
                 // Log dimensions for debugging
-                \Illuminate\Support\Facades\Log::info("Coordinate Test PDF Dimensions", [
-                    'page' => $pageNo,
-                    'width_mm' => $size['width'],
-                    'height_mm' => $size['height'],
-                    'test_x' => $testX,
-                    'test_y' => $testY,
-                    'requested_page' => $testPage
-                ]);
-                
+            \Illuminate\Support\Facades\Log::info("=== COORDINATE TEST BACKEND DEBUG ===");
+            \Illuminate\Support\Facades\Log::info("Received coordinates", [
+                'x' => $testX,
+                'y' => $testY,
+                'page' => $testPage,
+                'template_key' => $key
+            ]);
+            \Illuminate\Support\Facades\Log::info("PDF dimensions", [
+                'page' => $pageNo,
+                'width_mm' => $size['width'],
+                'height_mm' => $size['height'],
+                'orientation' => $size['orientation']
+            ]);
+            \Illuminate\Support\Facades\Log::info("Crosshair placement", [
+                'crosshair_x' => $testX,
+                'crosshair_y' => $testY,
+                'page_width' => $size['width'],
+                'page_height' => $size['height'],
+                'coordinates_within_bounds' => (
+                    $testX >= 0 && $testX <= $size['width'] && 
+                    $testY >= 0 && $testY <= $size['height']
+                )
+            ]);
+            \Illuminate\Support\Facades\Log::info("=========================================");
                 $pdf->AddPage($size['orientation'], array($size['width'], $size['height']));
                 $pdf->useTemplate($templateId);
                 

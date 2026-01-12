@@ -175,36 +175,90 @@ export default function PdfEditorPage() {
   const [coordinateTestMode, setCoordinateTestMode] = useState(false);
 
   // Fetch actual PDF dimensions from backend
-  const fetchPdfDimensions = async (templateKey: string) => {
-    if (!templateKey) return;
+  const fetchPdfDimensions = async (templateKey: string, retryCount = 0): Promise<any> => {
+    if (!templateKey) return null;
     
     try {
-      console.log('Fetching dimensions for template:', templateKey);
+      console.log(`Fetching dimensions for template: ${templateKey} (attempt ${retryCount + 1})`);
+      
+      const apiUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/pdf-templates/${encodeURIComponent(templateKey)}/dimensions`;
+      console.log('Dimensions API URL:', apiUrl);
+      
+      const response = await fetch(apiUrl, {
+        headers: {
+          'Bypass-Tunnel-Reminder': 'true',
+          'ngrok-skip-browser-warning': 'true',
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        // Add timeout
+        signal: AbortSignal.timeout(10000)
+      });
+      
+      console.log('Dimensions API response status:', response.status);
+      console.log('Dimensions API response headers:', Object.fromEntries(response.headers.entries()));
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Backend PDF dimensions received:', data);
+        return data.dimensions;
+      } else {
+        const errorText = await response.text();
+        console.error('❌ Dimensions API failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText,
+          url: apiUrl
+        });
+        
+        // If template doesn't exist (404), try to create it first
+        if (response.status === 404 && retryCount === 0) {
+          console.log('Template not found, creating it first...');
+          await ensureTemplateExists(templateKey);
+          return fetchPdfDimensions(templateKey, retryCount + 1);
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error fetching PDF dimensions:', {
+        error: error instanceof Error ? error.message : String(error),
+        templateKey,
+        attempt: retryCount + 1
+      });
+      
+      // Retry once on network error
+      if (retryCount === 0) {
+        console.log('Retrying dimensions fetch...');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        return fetchPdfDimensions(templateKey, retryCount + 1);
+      }
+    }
+    
+    console.warn('❌ Failed to fetch backend dimensions, will use frontend calculations');
+    return null;
+  };
+  
+  // Helper function to ensure template exists
+  const ensureTemplateExists = async (templateKey: string) => {
+    try {
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/pdf-templates/${encodeURIComponent(templateKey)}/dimensions`,
+        `${process.env.NEXT_PUBLIC_API_URL}/api/pdf-templates/${encodeURIComponent(templateKey)}`,
         {
           headers: {
             'Bypass-Tunnel-Reminder': 'true',
-            'ngrok-skip-browser-warning': 'true'
+            'ngrok-skip-browser-warning': 'true',
+            'Accept': 'application/json'
           }
         }
       );
       
-      console.log('Dimensions API response status:', response.status);
-      
       if (response.ok) {
-        const data = await response.json();
-        console.log('Backend PDF dimensions received:', data);
-        return data.dimensions;
+        console.log('✅ Template exists or was created');
       } else {
-        const errorText = await response.text();
-        console.error('Failed to fetch dimensions:', response.status, errorText);
+        console.log('❌ Failed to ensure template exists:', response.status);
       }
     } catch (error) {
-      console.error('Error fetching PDF dimensions:', error);
+      console.error('❌ Error ensuring template exists:', error);
     }
-    
-    return null;
   };
   const showNotif = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
     setNotificationMessage(message);
@@ -262,11 +316,14 @@ export default function PdfEditorPage() {
       // Fetch backend PDF dimensions for accurate coordinate mapping
       console.log('=== FETCHING BACKEND DIMENSIONS ===');
       const dimensions = await fetchPdfDimensions(key);
-      if (dimensions) {
+      if (dimensions && Object.keys(dimensions).length > 0) {
         setBackendDimensions(dimensions);
-        console.log('Successfully loaded backend dimensions for template:', key, dimensions);
+        console.log('✅ Successfully loaded backend dimensions for template:', key, dimensions);
+        showNotif(`Backend dimensions loaded: ${Object.keys(dimensions).length} pages`, 'success');
       } else {
-        console.warn('Failed to load backend dimensions, using calculated dimensions');
+        console.warn('❌ Failed to load backend dimensions, using frontend calculations');
+        setBackendDimensions(null);
+        showNotif('Using frontend dimension calculations (may be less accurate)', 'info');
       }
       console.log('==================================');
       

@@ -70,7 +70,11 @@ class SubmissionController extends Controller
                      // Text() places text at baseline, so we add font size to align visually with clicked position
                      $adjustedY = $y + ($fontSize * 0.35); // 0.35 factor accounts for typical font metrics
                      
-                     $pdf->Text($x, $adjustedY, (string)$value);
+                     // Center-align text: calculate width and adjust X position
+                     $textWidth = $pdf->GetStringWidth((string)$value);
+                     $centeredX = $x - ($textWidth / 2);
+                     
+                     $pdf->Text($centeredX, $adjustedY, (string)$value);
                  }
             }
         }

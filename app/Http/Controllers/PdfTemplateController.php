@@ -178,7 +178,11 @@ class PdfTemplateController extends Controller
                         // Text() places text at baseline, so we add font size to align visually with clicked position
                         $adjustedY = $y + ($fontSize * 0.35); // 0.35 factor accounts for typical font metrics
                         
-                        $pdf->Text($x, $adjustedY, $text);
+                        // Center-align text: calculate width and adjust X position
+                        $textWidth = $pdf->GetStringWidth($text);
+                        $centeredX = $x - ($textWidth / 2);
+                        
+                        $pdf->Text($centeredX, $adjustedY, $text);
                      }
                 }
             }

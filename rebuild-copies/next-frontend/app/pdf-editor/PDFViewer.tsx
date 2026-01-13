@@ -261,7 +261,15 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
                         <div 
                             key={pageNumber} 
                             data-page-number={pageNumber}
-                            style={{ position: 'relative', backgroundColor: 'white', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)', cursor: 'crosshair', marginBottom: '1rem' }}
+                            style={{ 
+                                position: 'relative', 
+                                backgroundColor: 'white', 
+                                boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)', 
+                                cursor: 'crosshair', 
+                                marginBottom: '1rem',
+                                display: 'inline-block',
+                                maxWidth: '100%'
+                            }}
                             onMouseMove={(e) => handleMouseMove(e, pageNumber)} 
                             onMouseLeave={() => setHoverCoords(null)}
                             onClick={(e) => handlePageClick(e, pageNumber)}
@@ -276,7 +284,7 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
                                 renderTextLayer={false} 
                                 renderAnnotationLayer={false}
                                 onLoadSuccess={onPageLoad}
-                                scale={1}
+                                width={dims.width * 2.83465}
                             />
                             
                             {/* Hover Tooltip (Per Page) */}

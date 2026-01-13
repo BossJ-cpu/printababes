@@ -461,17 +461,17 @@ export default function HomePage() {
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                 >
                   <option value="">-- Choose a PDF template --</option>
-                  {profiles.map(profile => (
+                  {profiles.filter(profile => profile.file_path).map(profile => (
                     <option key={profile.key} value={profile.key}>
-                      {profile.file_path ? '✅' : '⚠️'} {profile.name || profile.key} {!profile.file_path ? '(No PDF uploaded)' : ''}
+                      ✅ {profile.name || profile.key}
                     </option>
                   ))}
                 </select>
                 {profiles.length === 0 && (
                   <p className="text-sm text-orange-600 mt-1">💡 Create PDF templates using the PDF Editor first</p>
                 )}
-                {profiles.length > 0 && profiles.every(p => !p.file_path) && (
-                  <p className="text-sm text-orange-600 mt-1">⚠️ All templates need PDF files. Upload PDFs in the PDF Editor.</p>
+                {profiles.length > 0 && profiles.filter(p => p.file_path).length === 0 && (
+                  <p className="text-sm text-orange-600 mt-1">⚠️ No templates with PDF files. Upload PDFs in the PDF Editor.</p>
                 )}
               </div>
 

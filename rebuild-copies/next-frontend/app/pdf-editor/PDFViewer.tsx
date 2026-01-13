@@ -163,9 +163,6 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
         e.stopPropagation(); // Prevent page click
         e.preventDefault();
         
-        const rect = e.currentTarget.parentElement?.getBoundingClientRect();
-        if (!rect) return;
-        
         // Prevent clicks for a short duration
         setClickState({shouldPreventClick: true, timeStamp: Date.now()});
         
@@ -177,10 +174,6 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
             initialFieldX: fieldConfig.x,
             initialFieldY: fieldConfig.y
         });
-        
-        // Add global mouse event listeners
-        document.addEventListener('mousemove', handleGlobalMouseMove);
-        document.addEventListener('mouseup', handleGlobalMouseUp);
     };
 
     const handleGlobalMouseMove = useCallback((e: MouseEvent) => {
@@ -230,19 +223,20 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
         if (wasDragging) {
             setClickState({shouldPreventClick: false, timeStamp: Date.now()});
         }
-        
-        // Remove global event listeners
-        document.removeEventListener('mousemove', handleGlobalMouseMove);
-        document.removeEventListener('mouseup', handleGlobalMouseUp);
-    }, [handleGlobalMouseMove, dragState.isDragging]);
+    }, [dragState.isDragging]);
 
-    // Cleanup effect for drag listeners
+    // Effect to manage global mouse event listeners for dragging
     useEffect(() => {
+        if (dragState.isDragging) {
+            document.addEventListener('mousemove', handleGlobalMouseMove);
+            document.addEventListener('mouseup', handleGlobalMouseUp);
+        }
+        
         return () => {
             document.removeEventListener('mousemove', handleGlobalMouseMove);
             document.removeEventListener('mouseup', handleGlobalMouseUp);
         };
-    }, []);
+    }, [dragState.isDragging, handleGlobalMouseMove, handleGlobalMouseUp]);
 
     return (
         <div style={{ boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', backgroundColor: '#f3f4f6' }}>

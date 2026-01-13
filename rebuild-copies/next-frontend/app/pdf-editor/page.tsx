@@ -518,6 +518,8 @@ export default function PdfEditorPage() {
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files?.[0] || !template) return;
+    
+    const file = e.target.files[0];
 
     if (!template.key) {
         showNotif("Please enter a Template Name before uploading a PDF.", 'error');
@@ -525,18 +527,12 @@ export default function PdfEditorPage() {
         return;
     }
     
-    // Validate file type - check both MIME type and file extension
-    const file = e.target.files[0];
+    // Strict validation: check both MIME type AND file extension
     const fileExtension = file.name.split('.').pop()?.toLowerCase();
+    const isValidMimeType = file.type === 'application/pdf';
+    const isValidExtension = fileExtension === 'pdf';
     
-    if (file.type !== 'application/pdf' && fileExtension !== 'pdf') {
-        showNotif("Invalid file type. Please upload a PDF file.", 'error');
-        setFileInputKey(Date.now()); // Reset file input
-        return;
-    }
-    
-    // Additional check: if MIME type is empty but extension is .pdf, still reject if size suggests it's not a PDF
-    if (file.type !== 'application/pdf' || fileExtension !== 'pdf') {
+    if (!isValidMimeType || !isValidExtension) {
         showNotif("Invalid file type. Please upload a PDF file.", 'error');
         setFileInputKey(Date.now()); // Reset file input
         return;
@@ -779,7 +775,7 @@ export default function PdfEditorPage() {
                   id="pdf-upload"
                   name="pdfUpload"
                   type="file" 
-                  accept="application/pdf"
+                  accept=".pdf,application/pdf"
                   onChange={handleFileUpload}
                   key={fileInputKey}
                   className="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:font-medium file:bg-gray-900 file:text-white hover:file:bg-gray-800"

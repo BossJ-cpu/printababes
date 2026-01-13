@@ -276,6 +276,7 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
                                 renderTextLayer={false} 
                                 renderAnnotationLayer={false}
                                 onLoadSuccess={onPageLoad}
+                                scale={1}
                             />
                             
                             {/* Hover Tooltip (Per Page) */}

@@ -525,9 +525,18 @@ export default function PdfEditorPage() {
         return;
     }
     
-    // Validate file type
+    // Validate file type - check both MIME type and file extension
     const file = e.target.files[0];
-    if (file.type !== 'application/pdf') {
+    const fileExtension = file.name.split('.').pop()?.toLowerCase();
+    
+    if (file.type !== 'application/pdf' && fileExtension !== 'pdf') {
+        showNotif("Invalid file type. Please upload a PDF file.", 'error');
+        setFileInputKey(Date.now()); // Reset file input
+        return;
+    }
+    
+    // Additional check: if MIME type is empty but extension is .pdf, still reject if size suggests it's not a PDF
+    if (file.type !== 'application/pdf' || fileExtension !== 'pdf') {
         showNotif("Invalid file type. Please upload a PDF file.", 'error');
         setFileInputKey(Date.now()); // Reset file input
         return;

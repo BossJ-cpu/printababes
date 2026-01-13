@@ -170,6 +170,7 @@ export default function PdfEditorPage() {
   const [notificationMessage, setNotificationMessage] = useState('');
   const [notificationType, setNotificationType] = useState<'success' | 'error' | 'info'>('info');
   const [shouldAutoPreview, setShouldAutoPreview] = useState(false);
+  const [fileInputKey, setFileInputKey] = useState(Date.now()); // Force re-render of file input
   
   // Coordinate test state
   const [coordinateTestMode, setCoordinateTestMode] = useState(false);
@@ -520,7 +521,7 @@ export default function PdfEditorPage() {
 
     if (!template.key) {
         showNotif("Please enter a Template Name before uploading a PDF.", 'error');
-        e.target.value = ''; // Reset file input
+        setFileInputKey(Date.now()); // Reset file input
         return;
     }
     
@@ -528,7 +529,7 @@ export default function PdfEditorPage() {
     const file = e.target.files[0];
     if (file.type !== 'application/pdf') {
         showNotif("Invalid file type. Please upload a PDF file.", 'error');
-        e.target.value = ''; // Reset file input
+        setFileInputKey(Date.now()); // Reset file input
         return;
     }
     
@@ -771,6 +772,7 @@ export default function PdfEditorPage() {
                   type="file" 
                   accept="application/pdf"
                   onChange={handleFileUpload}
+                  key={fileInputKey}
                   className="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:font-medium file:bg-gray-900 file:text-white hover:file:bg-gray-800"
                 />
                 <p className="text-xs text-gray-500 mt-2">

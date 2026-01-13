@@ -524,8 +524,16 @@ export default function PdfEditorPage() {
         return;
     }
     
+    // Validate file type
+    const file = e.target.files[0];
+    if (file.type !== 'application/pdf') {
+        showNotif("Invalid file type. Please upload a PDF file.", 'error');
+        e.target.value = ''; // Reset file input
+        return;
+    }
+    
     const formData = new FormData();
-    formData.append('pdf', e.target.files[0]);
+    formData.append('pdf', file);
 
     try {
         setSaving(true);

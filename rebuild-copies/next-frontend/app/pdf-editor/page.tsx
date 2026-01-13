@@ -533,7 +533,7 @@ export default function PdfEditorPage() {
         }
 
         const updatedTemplate = await res.json();
-        showNotif('PDF template uploaded successfully! 📁 Click Preview to view.', 'success');
+        showNotif('PDF template uploaded successfully! 📁', 'success');
         
         // Reset fields on new PDF
         setTemplate({
@@ -541,11 +541,6 @@ export default function PdfEditorPage() {
             fields_config: {},
             file_path: updatedTemplate.file_path // Update file_path from response
         });
-        
-        // Clear current preview and error - don't auto preview
-        setPreviewUrl(null);
-        setPreviewError("PDF uploaded successfully. Click Preview button to view.");
-        setShouldAutoPreview(true); // Enable auto preview for subsequent saves
         
         // Save the cleared fields to backend
         await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pdf-templates/${template.key}`, {
@@ -557,6 +552,11 @@ export default function PdfEditorPage() {
             },
             body: JSON.stringify({ fields_config: {} }),
         });
+        
+        // Automatically preview the uploaded PDF
+        setPreviewError(null);
+        await handlePreview(template.key, {});
+        setShouldAutoPreview(true); // Enable auto preview for subsequent saves
 
     } catch (error) {
         console.error('Upload failed', error);

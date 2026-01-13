@@ -66,8 +66,11 @@ class SubmissionController extends Controller
                      
                      $pdf->SetFontSize($fontSize);
                      
-                     // Use Text method for exact positioning (consistent with preview)
-                     $pdf->Text($x, $y, (string)$value);
+                     // Adjust Y coordinate to account for text baseline
+                     // Text() places text at baseline, so we add font size to align visually with clicked position
+                     $adjustedY = $y + ($fontSize * 0.35); // 0.35 factor accounts for typical font metrics
+                     
+                     $pdf->Text($x, $adjustedY, (string)$value);
                  }
             }
         }

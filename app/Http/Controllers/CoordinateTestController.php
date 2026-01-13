@@ -104,7 +104,8 @@ class CoordinateTestController extends Controller
                     // Add coordinate text using Text method for consistency
                     $pdf->SetFont('Arial', 'B', 8);
                     $pdf->SetTextColor(255, 0, 0);
-                    $pdf->Text($testX + 6, $testY - 2, "X:{$testX}mm Y:{$testY}mm");
+                    // Adjust Y for baseline (font size 8 * 0.35)
+                    $pdf->Text($testX + 6, $testY - 2 + (8 * 0.35), "X:{$testX}mm Y:{$testY}mm");
                     
                     // Add center dot
                     $pdf->SetFillColor(255, 0, 0);

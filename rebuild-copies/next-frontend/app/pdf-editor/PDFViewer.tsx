@@ -267,8 +267,8 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
                                 boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)', 
                                 cursor: 'crosshair', 
                                 marginBottom: '1rem',
-                                display: 'inline-block',
-                                maxWidth: '100%'
+                                width: 'fit-content',
+                                margin: '0 auto 1rem auto'
                             }}
                             onMouseMove={(e) => handleMouseMove(e, pageNumber)} 
                             onMouseLeave={() => setHoverCoords(null)}
@@ -284,7 +284,6 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
                                 renderTextLayer={false} 
                                 renderAnnotationLayer={false}
                                 onLoadSuccess={onPageLoad}
-                                width={dims.width * 2.83465}
                             />
                             
                             {/* Hover Tooltip (Per Page) */}

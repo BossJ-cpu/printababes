@@ -897,7 +897,7 @@ export default function PdfEditorPage() {
                         )}
                     </div>
                 ) : previewUrl ? (
-                    <div className="w-full h-full">
+                    <div className="max-w-full">
                       <PDFViewer 
                         url={previewUrl} 
                         template={template} 

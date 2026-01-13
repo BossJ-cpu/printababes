@@ -510,15 +510,7 @@ export default function PdfEditorPage() {
     try {
         setSaving(true);
         
-        // First ensure the template exists by calling GET (which creates it via firstOrCreate)
-        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pdf-templates/${template.key}`, {
-          headers: {
-            'Bypass-Tunnel-Reminder': 'true',
-            'ngrok-skip-browser-warning': 'true'
-          }
-        });
-        
-        // Now upload the file
+        // Upload the file (this doesn't save to database, just stores the file)
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pdf-templates/${template.key}/upload`, {
             method: 'POST',
             headers: {
@@ -533,24 +525,13 @@ export default function PdfEditorPage() {
         }
 
         const updatedTemplate = await res.json();
-        showNotif('PDF template uploaded successfully! 📁', 'success');
+        showNotif('PDF uploaded! Click "Save Template" to save changes. 📁', 'success');
         
-        // Reset fields on new PDF
+        // Update local state only - don't save to database yet
         setTemplate({
             ...template,
             fields_config: {},
-            file_path: updatedTemplate.file_path // Update file_path from response
-        });
-        
-        // Save the cleared fields to backend
-        await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pdf-templates/${template.key}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Bypass-Tunnel-Reminder': 'true',
-                'ngrok-skip-browser-warning': 'true'
-            },
-            body: JSON.stringify({ fields_config: {} }),
+            file_path: updatedTemplate.file_path
         });
         
         // Automatically preview the uploaded PDF

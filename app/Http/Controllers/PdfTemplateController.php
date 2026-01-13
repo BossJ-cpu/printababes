@@ -58,8 +58,6 @@ class PdfTemplateController extends Controller
             'pdf' => 'required|file|mimes:pdf',
         ]);
 
-        $template = PdfTemplate::firstOrCreate(['key' => $key]);
-
         if ($request->hasFile('pdf')) {
             $file = $request->file('pdf');
             $originalPath = $file->store('templates', 'public');
@@ -91,10 +89,15 @@ class PdfTemplateController extends Controller
                 // Continue with original file if GS fails
             }
 
-            $template->update(['file_path' => $originalPath]);
+            // Return only the file path without saving to database
+            // The frontend will store this temporarily and save it when user clicks "Save Template"
+            return response()->json([
+                'file_path' => $originalPath,
+                'message' => 'File uploaded successfully. Click "Save Template" to save changes.'
+            ]);
         }
 
-        return $template;
+        return response()->json(['error' => 'No file uploaded'], 400);
     }
 
     public function preview(Request $request, $key)

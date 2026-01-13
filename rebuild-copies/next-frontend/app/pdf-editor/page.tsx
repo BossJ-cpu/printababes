@@ -376,7 +376,7 @@ export default function PdfEditorPage() {
 
   const handleSave = async () => {
     if (!template || !template.key) {
-        showNotif("Please provide a profile name.", 'error');
+        showNotif("Please provide a Template Name.", 'error');
         return;
     }
     setSaving(true);

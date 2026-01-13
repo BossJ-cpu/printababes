@@ -260,11 +260,15 @@ export default function PdfEditorPage() {
       console.error('❌ Error ensuring template exists:', error);
     }
   };
-  const showNotif = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+  const showNotif = (message: string, type: 'success' | 'error' | 'info' = 'info', duration?: number) => {
     setNotificationMessage(message);
     setNotificationType(type);
     setShowNotification(true);
-    setTimeout(() => setShowNotification(false), 3000);
+    // Errors stay visible until manually dismissed (no auto-hide)
+    // Success/info messages auto-hide after specified duration or 3 seconds
+    if (type !== 'error') {
+      setTimeout(() => setShowNotification(false), duration || 3000);
+    }
   };
 
   useEffect(() => {
@@ -515,7 +519,7 @@ export default function PdfEditorPage() {
     if (!e.target.files?.[0] || !template) return;
 
     if (!template.key) {
-        showNotif("Please enter a Profile Name (Key) before uploading a PDF.", 'error');
+        showNotif("Please enter a Template Name before uploading a PDF.", 'error');
         e.target.value = ''; // Reset file input
         return;
     }

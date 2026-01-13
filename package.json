@@ -2,13 +2,13 @@
     "$schema": "https://www.schemastore.org/package.json",
     "private": true,
     "type": "module",
-"scripts": {
-  "dev": "vite",
-  "dev:full": "concurrently \"php artisan serve\" \"cd rebuild-copies/next-frontend && npm run dev\"",
-  "build": "vite build",
-  "preview": "vite preview",
-  "start": "vite preview --port $PORT --host"
-},
+    "scripts": {
+        "dev": "vite",
+        "dev:full": "concurrently \"php artisan serve\" \"cd rebuild-copies/next-frontend && npm run dev\"",
+        "build": "vite build",
+        "preview": "vite preview",
+        "start": "vite preview --port $PORT --host"
+    },
     "devDependencies": {
         "@tailwindcss/vite": "^4.0.0",
         "autoprefixer": "^10.4.23",
@@ -22,6 +22,7 @@
     "dependencies": {
         "next": "^16.1.1",
         "react": "^19.2.3",
-        "react-dom": "^19.2.3"
+        "react-dom": "^19.2.3",
+        "react-pdf": "^10.3.0"
     }
 }

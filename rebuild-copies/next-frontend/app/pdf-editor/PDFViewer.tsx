@@ -30,6 +30,7 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
     const [pageDims, setPageDims] = useState<Record<number, {width: number, height: number}>>({});
     const [hoverCoords, setHoverCoords] = useState<{x: number, y: number} | null>(null);
     const [clickState, setClickState] = useState<{shouldPreventClick: boolean; timeStamp: number}>({shouldPreventClick: false, timeStamp: 0});
+    const [scale, setScale] = useState<number>(1.0); // Zoom scale state
     
     // Dragging state
     const [dragState, setDragState] = useState<{
@@ -245,38 +246,114 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
     }, []);
 
     return (
-        <div style={{ boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', backgroundColor: '#f3f4f6' }}>
-            <Document 
-                file={url}
-                onLoadSuccess={({ numPages }) => setNumPages(numPages)}
-                loading={<div style={{ padding: '2.5rem' }}>Loading PDF...</div>}
-                error={<div style={{ padding: '2.5rem', color: '#ef4444' }}>Failed to render PDF.</div>}
-            >
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {Array.from(new Array(numPages), (_, index) => {
-                    const pageNumber = index + 1;
-                    const dims = backendDimensions?.[pageNumber] || pageDims[pageNumber] || { width: 210, height: 297 };
+        <div style={{ position: 'relative' }}>
+            {/* Zoom Controls */}
+            <div style={{ 
+                position: 'sticky', 
+                top: '10px', 
+                zIndex: 100, 
+                display: 'flex', 
+                justifyContent: 'center',
+                marginBottom: '10px'
+            }}>
+                <div style={{ 
+                    backgroundColor: 'white', 
+                    padding: '8px 12px', 
+                    borderRadius: '8px', 
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                    display: 'flex',
+                    gap: '8px',
+                    alignItems: 'center'
+                }}>
+                    <button
+                        onClick={() => setScale(Math.max(0.5, scale - 0.1))}
+                        style={{
+                            padding: '6px 12px',
+                            backgroundColor: '#f3f4f6',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontWeight: '600',
+                            fontSize: '14px'
+                        }}
+                        title="Zoom Out"
+                    >
+                        −
+                    </button>
+                    <span style={{ 
+                        minWidth: '60px', 
+                        textAlign: 'center', 
+                        fontWeight: '600',
+                        fontSize: '13px'
+                    }}>
+                        {Math.round(scale * 100)}%
+                    </span>
+                    <button
+                        onClick={() => setScale(Math.min(2.0, scale + 0.1))}
+                        style={{
+                            padding: '6px 12px',
+                            backgroundColor: '#f3f4f6',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontWeight: '600',
+                            fontSize: '14px'
+                        }}
+                        title="Zoom In"
+                    >
+                        +
+                    </button>
+                    <button
+                        onClick={() => setScale(1.0)}
+                        style={{
+                            padding: '6px 12px',
+                            backgroundColor: '#e5e7eb',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '12px',
+                            fontWeight: '500'
+                        }}
+                        title="Reset Zoom"
+                    >
+                        Reset
+                    </button>
+                </div>
+            </div>
+            
+            <div style={{ boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', backgroundColor: '#f3f4f6' }}>
+                <Document 
+                    file={url}
+                    onLoadSuccess={({ numPages }) => setNumPages(numPages)}
+                    loading={<div style={{ padding: '2.5rem' }}>Loading PDF...</div>}
+                    error={<div style={{ padding: '2.5rem', color: '#ef4444' }}>Failed to render PDF.</div>}
+                >
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {Array.from(new Array(numPages), (_, index) => {
+                        const pageNumber = index + 1;
+                        const dims = backendDimensions?.[pageNumber] || pageDims[pageNumber] || { width: 210, height: 297 };
 
-                    return (
-                        <div 
-                            key={pageNumber} 
-                            data-page-number={pageNumber}
-                            style={{ position: 'relative', backgroundColor: 'white', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)', cursor: 'crosshair', marginBottom: '1rem' }}
-                            onMouseMove={(e) => handleMouseMove(e, pageNumber)} 
-                            onMouseLeave={() => setHoverCoords(null)}
-                            onClick={(e) => handlePageClick(e, pageNumber)}
-                            onContextMenu={(e) => {
-                                e.preventDefault();
-                                // Right-click to show page dimensions and help debug
-                                alert(`Page ${pageNumber} dimensions: ${dims.width.toFixed(2)}mm x ${dims.height.toFixed(2)}mm\n\nClick to add fields. Coordinates are in millimeters.\n\nFor best accuracy:\n- Use a consistent zoom level\n- Click exactly where you want the text to start`);
-                            }}
-                        >
-                            <Page 
-                                pageNumber={pageNumber} 
-                                renderTextLayer={false} 
-                                renderAnnotationLayer={false}
-                                onLoadSuccess={onPageLoad}
-                            />
+                        return (
+                            <div 
+                                key={pageNumber} 
+                                data-page-number={pageNumber}
+                                style={{ position: 'relative', backgroundColor: 'white', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)', cursor: 'crosshair', marginBottom: '1rem' }}
+                                onMouseMove={(e) => handleMouseMove(e, pageNumber)} 
+                                onMouseLeave={() => setHoverCoords(null)}
+                                onClick={(e) => handlePageClick(e, pageNumber)}
+                                onContextMenu={(e) => {
+                                    e.preventDefault();
+                                    // Right-click to show page dimensions and help debug
+                                    alert(`Page ${pageNumber} dimensions: ${dims.width.toFixed(2)}mm x ${dims.height.toFixed(2)}mm\n\nClick to add fields. Coordinates are in millimeters.\n\nFor best accuracy:\n- Use a consistent zoom level\n- Click exactly where you want the text to start`);
+                                }}
+                            >
+                                <Page 
+                                    pageNumber={pageNumber} 
+                                    renderTextLayer={false} 
+                                    renderAnnotationLayer={false}
+                                    onLoadSuccess={onPageLoad}
+                                    scale={scale}
+                                />
                             
                             {/* Hover Tooltip (Per Page) */}
                             {hoverCoords && (
@@ -408,6 +485,7 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
                 })}
                 </div>
             </Document>
+            </div>
         </div>
     );
 }

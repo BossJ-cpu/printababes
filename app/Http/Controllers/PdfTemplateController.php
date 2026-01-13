@@ -54,6 +54,12 @@ class PdfTemplateController extends Controller
 
     public function upload(Request $request, $key)
     {
+    $request->validate([
+        'pdf' => 'required|file|mimes:pdf|max:15360',
+    ], [
+        'pdf.max' => 'The file is too big. Max size is 15MB.',
+        'pdf.mimes' => 'Only PDF files are allowed.',
+    ]);
         $request->validate([
             'pdf' => 'required|file|mimes:pdf',
         ]);
@@ -171,11 +177,9 @@ class PdfTemplateController extends Controller
                          
                          $pdf->SetFontSize($fontSize);
                         
-                        // Adjust Y coordinate to account for text baseline
-                        // Text() places text at baseline, so we add font size to align visually with clicked position
-                        $adjustedY = $y + ($fontSize * 0.35); // 0.35 factor accounts for typical font metrics
-                        
-                        $pdf->Text($x, $adjustedY, $text);
+                        // Use Text method for exact positioning at specified coordinates
+                        // Text places text exactly at the coordinates without additional offsets
+                        $pdf->Text($x, $y, $text);
                      }
                 }
             }

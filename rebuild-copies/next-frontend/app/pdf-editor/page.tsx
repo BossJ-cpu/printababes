@@ -169,10 +169,6 @@ export default function PdfEditorPage() {
   const [showNotification, setShowNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState('');
   const [notificationType, setNotificationType] = useState<'success' | 'error' | 'info'>('info');
-  const [shouldAutoPreview, setShouldAutoPreview] = useState(false);
-  
-  // Coordinate test state
-  const [coordinateTestMode, setCoordinateTestMode] = useState(false);
 
   // Fetch actual PDF dimensions from backend
   const fetchPdfDimensions = async (templateKey: string, retryCount = 0): Promise<any> => {
@@ -264,7 +260,9 @@ export default function PdfEditorPage() {
     setNotificationMessage(message);
     setNotificationType(type);
     setShowNotification(true);
-    setTimeout(() => setShowNotification(false), 3000);
+    // Longer timeout for errors (10s), shorter for success (4s)
+    const timeout = type === 'error' ? 10000 : 4000;
+    setTimeout(() => setShowNotification(false), timeout);
   };
 
   useEffect(() => {
@@ -393,9 +391,9 @@ export default function PdfEditorPage() {
           showNotif('Template saved successfully! 🎉', 'success');
           
           // Only preview if we definitely have a file path
-          if (template.file_path && shouldAutoPreview) {
+          if (template.file_path) {
               handlePreview();
-          } else if (!template.file_path) {
+          } else {
               setPreviewUrl(null);
               setPreviewError("Template saved. Please upload a PDF template to start editing fields.");
           }
@@ -498,14 +496,31 @@ export default function PdfEditorPage() {
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files?.[0] || !template) return;
 
-    if (!template.key) {
-        showNotif("Please enter a Profile Name (Key) before uploading a PDF.", 'error');
+    const file = e.target.files[0];
+    
+    // Validate template name exists
+    if (!template.key || template.key.trim() === '') {
+        showNotif("Error: Please enter a Template Name before uploading a PDF.", 'error');
+        e.target.value = ''; // Reset file input
+        return;
+    }
+    
+    // Validate file type
+    if (file.type !== 'application/pdf') {
+        showNotif("Invalid file type. Please upload a PDF file.", 'error');
+        e.target.value = ''; // Reset file input
+        return;
+    }
+    
+    // Validate file size (15MB = 15728640 bytes)
+    if (file.size > 15728640) {
+        showNotif("File is too large. Maximum size is 15MB.", 'error');
         e.target.value = ''; // Reset file input
         return;
     }
     
     const formData = new FormData();
-    formData.append('pdf', e.target.files[0]);
+    formData.append('pdf', file);
 
     try {
         setSaving(true);
@@ -529,11 +544,12 @@ export default function PdfEditorPage() {
         });
         
         if (!res.ok) {
-            throw new Error(`Upload failed: ${res.status} ${res.statusText}`);
+            const errorData = await res.json().catch(() => ({}));
+            throw new Error(errorData.error || `Upload failed: ${res.status} ${res.statusText}`);
         }
 
         const updatedTemplate = await res.json();
-        showNotif('PDF template uploaded successfully! 📁 Click Preview to view.', 'success');
+        showNotif('PDF template uploaded successfully! 📁', 'success');
         
         // Reset fields on new PDF
         setTemplate({
@@ -542,10 +558,9 @@ export default function PdfEditorPage() {
             file_path: updatedTemplate.file_path // Update file_path from response
         });
         
-        // Clear current preview and error - don't auto preview
+        // Clear current preview - will auto-preview after save
         setPreviewUrl(null);
-        setPreviewError("PDF uploaded successfully. Click Preview button to view.");
-        setShouldAutoPreview(true); // Enable auto preview for subsequent saves
+        setPreviewError(null);
         
         // Save the cleared fields to backend
         await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pdf-templates/${template.key}`, {
@@ -557,12 +572,16 @@ export default function PdfEditorPage() {
             },
             body: JSON.stringify({ fields_config: {} }),
         });
+        
+        // Auto-preview after upload
+        setTimeout(() => handlePreview(), 500);
 
     } catch (error) {
         console.error('Upload failed', error);
-        showNotif('Upload failed: ' + error, 'error');
+        showNotif('Upload failed: ' + (error instanceof Error ? error.message : String(error)), 'error');
     } finally {
         setSaving(false);
+        e.target.value = ''; // Reset file input for future uploads
     }
   };
 
@@ -598,45 +617,6 @@ export default function PdfEditorPage() {
             }
         }
     });
-  };
-
-  const handleCoordinateTest = async (x: number, y: number, pageNumber: number) => {
-    console.log('=== COORDINATE TEST DEBUG ===');
-    console.log('Frontend sending coordinates:', { x, y, pageNumber, templateKey: template.key });
-    
-    try {
-      // Generate test PDF with crosshair at clicked coordinates
-      const testUrl = `${process.env.NEXT_PUBLIC_API_URL}/api/pdf-templates/${encodeURIComponent(template.key)}/coordinate-test?x=${x}&y=${y}&page=${pageNumber}`;
-      console.log('Test URL:', testUrl);
-      
-      const response = await fetch(testUrl, {
-          headers: {
-            'Bypass-Tunnel-Reminder': 'true',
-            'ngrok-skip-browser-warning': 'true'
-          }
-        }
-      );
-
-      console.log('Test response status:', response.status);
-      
-      if (response.ok) {
-        const blob = await response.blob();
-        const testPdfUrl = URL.createObjectURL(blob);
-        
-        // Open the test PDF in a new tab
-        window.open(testPdfUrl, '_blank');
-        
-        showNotif(`Test coordinate placed at X: ${x.toFixed(1)}mm, Y: ${y.toFixed(1)}mm on page ${pageNumber}`, 'success');
-      } else {
-        const errorText = await response.text();
-        console.error('Test response error:', errorText);
-        throw new Error('Failed to generate coordinate test');
-      }
-    } catch (error) {
-      console.error('Coordinate test error:', error);
-      showNotif('Failed to generate coordinate test PDF', 'error');
-    }
-    console.log('=============================');
   };
 
   const handleRemoveField = (fieldName: string) => {
@@ -850,18 +830,6 @@ export default function PdfEditorPage() {
                         Delete
                      </button>
                   )}
-                  
-                  <button
-                    onClick={() => setCoordinateTestMode(!coordinateTestMode)}
-                    className={`px-4 py-2 rounded-md font-medium text-sm transition-all duration-200 ${
-                      coordinateTestMode
-                        ? 'bg-orange-600 text-white hover:bg-orange-700'
-                        : 'bg-orange-100 text-orange-700 hover:bg-orange-200 border border-orange-300'
-                    }`}
-                    title="Test coordinate accuracy by clicking and generating a PDF with crosshair markers"
-                  >
-                    {coordinateTestMode ? '🎯 Test Mode ON' : '🎯 Test Coordinates'}
-                  </button>
                 </div>
               </div>
             </div>
@@ -871,19 +839,9 @@ export default function PdfEditorPage() {
           <div className="col-span-8 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden">
             <div className="p-4 border-b border-gray-200 bg-gray-50">
               <h2 className="text-lg font-semibold text-gray-800">PDF Preview</h2>
-              {coordinateTestMode ? (
-                <div className="bg-orange-50 border border-orange-200 rounded p-3 mt-2">
-                  <p className="text-sm text-orange-800 font-medium">🎯 Coordinate Test Mode Active</p>
-                  <p className="text-xs text-orange-700 mt-1">
-                    Click anywhere on the PDF to generate a test PDF with a crosshair at that exact coordinate. 
-                    This helps verify coordinate accuracy. Right-click for page dimensions.
-                  </p>
-                </div>
-              ) : (
-                <p className="text-sm text-gray-600 mt-1">
-                  Click on the PDF to add field coordinates. Drag existing field markers to reposition them. Right-click for page dimensions.
-                </p>
-              )}
+              <p className="text-sm text-gray-600 mt-1">
+                Click on the PDF to add field coordinates. Drag existing field markers to reposition them. Right-click for page dimensions.
+              </p>
             </div>
             
             <div className="p-4 h-full bg-gray-50 overflow-auto">
@@ -906,8 +864,6 @@ export default function PdfEditorPage() {
                         template={template} 
                         onAddField={handleAddField}
                         onUpdateField={handleUpdateField}
-                        coordinateTestMode={coordinateTestMode}
-                        onCoordinateTest={handleCoordinateTest}
                         backendDimensions={backendDimensions || undefined}
                       />
                     </div>
@@ -928,34 +884,58 @@ export default function PdfEditorPage() {
       {showNotification && (
         <div className="fixed inset-0 flex items-center justify-center z-50 px-4">
           <div className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" onClick={() => setShowNotification(false)}></div>
-          <div className="bg-white rounded-lg p-6 shadow-2xl transform transition-all animate-bounce-in relative z-10 max-w-md w-full border border-gray-200">
+          <div className="bg-white rounded-lg p-6 shadow-2xl transform transition-all animate-bounce-in relative z-10 max-w-md w-full border-2 border-gray-200">
+            {/* Close X button */}
+            <button 
+              onClick={() => setShowNotification(false)}
+              className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 transition-colors"
+              title="Close"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            
             <div className="flex items-start mb-4">
-              <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+              <div className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
                 notificationType === 'success' ? 'bg-green-100' :
                 notificationType === 'error' ? 'bg-red-100' : 'bg-blue-100'
               }`}>
-                <div className={`w-4 h-4 rounded-full ${
-                  notificationType === 'success' ? 'bg-green-500' :
-                  notificationType === 'error' ? 'bg-red-500' : 'bg-blue-500'
-                }`}></div>
+                {notificationType === 'success' ? (
+                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : notificationType === 'error' ? (
+                  <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                ) : (
+                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                )}
               </div>
-              <div className="ml-4 flex-1">
-                <h3 className={`text-base font-semibold ${
+              <div className="ml-4 flex-1 pr-6">
+                <h3 className={`text-lg font-semibold ${
                   notificationType === 'success' ? 'text-green-900' :
                   notificationType === 'error' ? 'text-red-900' : 'text-blue-900'
                 }`}>
                   {notificationType === 'success' ? 'Success!' :
                    notificationType === 'error' ? 'Error' : 'Info'}
                 </h3>
-                <p className="text-sm text-gray-600 mt-1">{notificationMessage}</p>
+                <p className="text-sm text-gray-700 mt-1 leading-relaxed">{notificationMessage}</p>
               </div>
             </div>
-            <div className="flex justify-end">
+            <div className="flex justify-end pt-2">
               <button
                 onClick={() => setShowNotification(false)}
-                className="px-4 py-2 bg-gray-900 text-white text-sm rounded-md hover:bg-gray-800 transition-colors duration-200 font-medium"
+                className={`px-5 py-2 rounded-md text-sm font-semibold transition-all duration-200 ${
+                  notificationType === 'success' ? 'bg-green-600 hover:bg-green-700 text-white' :
+                  notificationType === 'error' ? 'bg-red-600 hover:bg-red-700 text-white' :
+                  'bg-blue-600 hover:bg-blue-700 text-white'
+                }`}
               >
-                Got it
+                Dismiss
               </button>
             </div>
           </div>

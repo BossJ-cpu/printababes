@@ -273,18 +273,34 @@ export default function PdfEditorPage() {
 
   const fetchProfiles = async () => {
       try {
+          // Add timeout to prevent hanging
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+          
           const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pdf-templates`, {
               headers: {
                   'Bypass-Tunnel-Reminder': 'true',
                   'ngrok-skip-browser-warning': 'true'
-              }
+              },
+              signal: controller.signal
           });
+          
+          clearTimeout(timeoutId);
+          
           if (res.ok) {
               const data = await res.json();
               setProfiles(data);
+          } else {
+              console.error("Failed to fetch profiles - Status:", res.status);
+              showNotif(`Failed to load templates (Status: ${res.status})`, 'error');
           }
       } catch (e) {
           console.error("Failed to fetch profiles", e);
+          if (e instanceof Error && e.name === 'AbortError') {
+              showNotif('Loading templates timed out. Backend might be slow or down.', 'error');
+          } else {
+              showNotif('Failed to connect to server. Check your connection.', 'error');
+          }
       } finally {
           setLoading(false);
       }

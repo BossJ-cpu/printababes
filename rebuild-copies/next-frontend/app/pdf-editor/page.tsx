@@ -731,27 +731,33 @@ export default function PdfEditorPage() {
       });
   };
 
-  // Handle clicking column to add as field
+  // Handle clicking column to add as field (allows multiple instances)
   const handleColumnClick = (columnName: string) => {
     if (!template || !previewUrl) {
       showNotif('Please upload and preview a PDF first', 'error');
       return;
     }
     
-    // Check if field already exists
-    if (template.fields_config[columnName]) {
-      showNotif(`Field "${columnName}" already exists`, 'info');
-      return;
+    // Generate unique field name by adding counter suffix if needed
+    let fieldName = columnName;
+    let counter = 1;
+    
+    while (template.fields_config[fieldName]) {
+      fieldName = `${columnName}_${counter}`;
+      counter++;
     }
     
-    // Add field at center of page with default values
+    // Calculate offset position for new fields
+    const existingFieldsCount = Object.keys(template.fields_config).length;
+    
+    // Add field with slight offset to avoid overlap
     setTemplate({
       ...template,
       fields_config: {
         ...template.fields_config,
-        [columnName]: {
+        [fieldName]: {
           x: 100,
-          y: 100,
+          y: 100 + (existingFieldsCount * 30),
           page: 1,
           font: 'Arial',
           size: 12
@@ -759,7 +765,7 @@ export default function PdfEditorPage() {
       }
     });
     
-    showNotif(`Field "${columnName}" added to PDF`, 'success', 2000);
+    showNotif(`Field "${fieldName}" added to PDF`, 'success', 2000);
   };
   
   const handleRenameField = (oldName: string, newName: string) => {
@@ -835,31 +841,16 @@ export default function PdfEditorPage() {
             </div>
             <div className="overflow-x-auto">
               <div className="flex gap-2 pb-2 min-w-min">
-                {tableColumns.map((col) => {
-                  const isAdded = !!template.fields_config[col];
-                  return (
-                    <button
-                      key={col}
-                      onClick={() => handleColumnClick(col)}
-                      disabled={isAdded}
-                      className={`
-                        px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all duration-200
-                        ${isAdded 
-                          ? 'bg-green-100 text-green-700 border-2 border-green-300 cursor-not-allowed opacity-75' 
-                          : 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700 shadow-md hover:shadow-lg hover:scale-105 active:scale-95'
-                        }
-                      `}
-                      title={isAdded ? 'Field already added' : `Click to add "${col}" field`}
-                    >
-                      {isAdded && (
-                        <svg className="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
-                        </svg>
-                      )}
-                      {col}
-                    </button>
-                  );
-                })}
+                {tableColumns.map((col) => (
+                  <button
+                    key={col}
+                    onClick={() => handleColumnClick(col)}
+                    className="px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all duration-200 bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700 shadow-md hover:shadow-lg hover:scale-105 active:scale-95"
+                    title={`Click to add "${col}" field (can add multiple times)`}
+                  >
+                    {col}
+                  </button>
+                ))}
               </div>
             </div>
           </div>

@@ -13,9 +13,18 @@ class DatabaseManagerController extends Controller
     {
         $tables = DB::select("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'");
         
+        // Protected Laravel system tables to exclude from display
+        $protected = ['users', 'migrations', 'pdf_templates', 'submissions', 'personal_access_tokens', 'cache', 'cache_locks', 'jobs', 'job_batches', 'failed_jobs', 'password_reset_tokens', 'sessions'];
+        
         $tableData = [];
         foreach ($tables as $table) {
             $tableName = $table->name;
+            
+            // Skip protected tables
+            if (in_array($tableName, $protected)) {
+                continue;
+            }
+            
             $columns = Schema::getColumnListing($tableName);
             $rowCount = DB::table($tableName)->count();
             

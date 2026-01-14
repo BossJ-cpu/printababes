@@ -187,8 +187,8 @@ export default function HomePage() {
             PDF Generator
           </h1>
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 max-w-4xl mx-auto">
-            <h2 className="text-lg font-semibold text-blue-900 mb-3">📋 How It Works - 3 Simple Steps</h2>
-            <div className="grid md:grid-cols-3 gap-4 text-sm">
+            <h2 className="text-lg font-semibold text-blue-900 mb-3">📋 How It Works - 2 Simple Steps</h2>
+            <div className="grid md:grid-cols-2 gap-4 text-sm">
               <div className="bg-white rounded-lg p-4 border border-blue-100">
                 <div className="text-blue-600 font-bold mb-2">1️⃣ Create Template</div>
                 <p className="text-gray-600">Upload your PDF and set field positions using the PDF Editor</p>
@@ -197,11 +197,7 @@ export default function HomePage() {
                 </a>
               </div>
               <div className="bg-white rounded-lg p-4 border border-blue-100">
-                <div className="text-blue-600 font-bold mb-2">2️⃣ Submit Your Data</div>
-                <p className="text-gray-600">Fill out your information using the form below ⬇️</p>
-              </div>
-              <div className="bg-white rounded-lg p-4 border border-blue-100">
-                <div className="text-blue-600 font-bold mb-2">3️⃣ Generate PDF</div>
+                <div className="text-blue-600 font-bold mb-2">2️⃣ Generate PDF</div>
                 <p className="text-gray-600">Select your data and template to create the final PDF ⬇️</p>
               </div>
             </div>

@@ -821,7 +821,7 @@ export default function PdfEditorPage() {
               </div>
 
               {/* Profile Selection */}
-              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className={`mb-4 p-3 border border-blue-200 rounded-lg ${!template.source_table ? 'bg-gray-100 opacity-60' : 'bg-blue-50'}`}>
                 <label htmlFor="profile-select" className="block text-sm font-semibold text-blue-900 mb-2">
                   Select Existing Template
                 </label>
@@ -836,13 +836,19 @@ export default function PdfEditorPage() {
                           loadProfile(e.target.value);
                       }
                   }}
-                  className="w-full px-3 py-2 border border-blue-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-sm"
+                  disabled={!template.source_table}
+                  className={`w-full px-3 py-2 border border-blue-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${!template.source_table ? 'bg-gray-200 cursor-not-allowed' : 'bg-white'}`}
                 >
                   <option value="">-- Create New Template --</option>
                   {filteredTemplates.map(p => (
                       <option key={p.key} value={p.key}>{p.name || p.key}</option>
                   ))}
                 </select>
+                {!template.source_table && (
+                  <p className="text-xs text-orange-600 mt-1">
+                    ⚠️ Please select a source table first
+                  </p>
+                )}
                 {template.source_table && filteredTemplates.length === 0 && (
                   <p className="text-xs text-orange-600 mt-1">
                     No templates for {template.source_table} table yet

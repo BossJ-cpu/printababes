@@ -464,6 +464,48 @@ export default function PdfEditorPage() {
       }
   };
 
+  const previewUploadedFile = async (filePath: string, fieldsConfig: any) => {
+     if (!filePath) return;
+     
+     const params = new URLSearchParams();
+     params.append('t', Date.now().toString());
+     params.append('file_path', filePath);
+     
+     Object.keys(fieldsConfig).forEach(key => {
+         const formattedKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+         params.append(key, `[${formattedKey}]`);
+     });
+
+     try {
+       setPreviewError(null);
+       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/preview-file?${params.toString()}`, {
+           method: 'POST',
+           headers: {
+               'Content-Type': 'application/x-www-form-urlencoded',
+               'Bypass-Tunnel-Reminder': 'true',
+               'ngrok-skip-browser-warning': 'true'
+           },
+           body: params.toString()
+       });
+       
+       if (!res.ok) {
+           const errorData = await res.json().catch(() => ({}));
+           const message = errorData.error || `HTTP ${res.status} Error`;
+           console.error("Preview file failed:", res.status, message);
+           setPreviewError(`Preview Error: ${message}`);
+           setPreviewUrl(null);
+           return;
+       }
+
+       const blob = await res.blob();
+       const url = window.URL.createObjectURL(blob);
+       setPreviewUrl(url);
+     } catch(e) {
+        console.error("Preview file error:", e);
+        setPreviewError("An error occurred while loading preview.");
+     }
+  };
+
   const handlePreview = async (overrideKey?: string | React.MouseEvent, overrideConfig?: any) => {
      const keyToUse = typeof overrideKey === 'string' ? overrideKey : template.key;
      const configToUse = (typeof overrideConfig === 'object' && overrideConfig !== null && !('nativeEvent' in overrideConfig) ) ? overrideConfig : template.fields_config;
@@ -568,9 +610,9 @@ export default function PdfEditorPage() {
             file_path: updatedTemplate.file_path
         });
         
-        // Automatically preview the uploaded PDF
+        // Automatically preview the uploaded PDF using the new preview-file endpoint
         setPreviewError(null);
-        await handlePreview(template.key, {});
+        await previewUploadedFile(updatedTemplate.file_path, {});
         setShouldAutoPreview(true); // Enable auto preview for subsequent saves
 
     } catch (error) {

@@ -15,6 +15,7 @@ type Profile = {
   key: string;
   name?: string;
   file_path?: string;
+  source_table?: string;
 };
 
 export default function HomePage() {
@@ -34,12 +35,64 @@ export default function HomePage() {
   const [selectedSubmissionId, setSelectedSubmissionId] = useState('');
   const [selectedTemplateKey, setSelectedTemplateKey] = useState('');
   const [pdfLoading, setPdfLoading] = useState(false);
+  
+  // Table Selection State
+  const [availableTables, setAvailableTables] = useState<string[]>([]);
+  const [selectedTable, setSelectedTable] = useState<string>('');
+  const [tableRecords, setTableRecords] = useState<any[]>([]);
 
   // Load data on mount
   useEffect(() => {
     fetchSubmissions();
     fetchProfiles();
+    fetchAvailableTables();
   }, []);
+
+  const fetchAvailableTables = async () => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/available-tables`, {
+        headers: {
+          'Bypass-Tunnel-Reminder': 'true',
+          'ngrok-skip-browser-warning': 'true'
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAvailableTables(data.tables || []);
+      }
+    } catch (error) {
+      console.error('Error fetching available tables:', error);
+    }
+  };
+
+  const fetchTableRecords = async (tableName: string) => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/table-records/${tableName}`, {
+        headers: {
+          'Bypass-Tunnel-Reminder': 'true',
+          'ngrok-skip-browser-warning': 'true'
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setTableRecords(data);
+      }
+    } catch (error) {
+      console.error('Error fetching table records:', error);
+      setTableRecords([]);
+    }
+  };
+
+  const handleTableChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const table = e.target.value;
+    setSelectedTable(table);
+    setSelectedSubmissionId(''); // Reset selected data when table changes
+    if (table) {
+      fetchTableRecords(table);
+    } else {
+      setTableRecords([]);
+    }
+  };
 
   const fetchSubmissions = async () => {
     try {
@@ -427,6 +480,29 @@ export default function HomePage() {
 
             <div className="space-y-4">
               <div>
+                <label htmlFor="table-select" className="block text-sm font-medium text-gray-700 mb-2">
+                  Select Source Table
+                </label>
+                <select
+                  id="table-select"
+                  name="tableSelect"
+                  value={selectedTable}
+                  onChange={handleTableChange}
+                  className="w-full px-4 py-3 border border-green-300 bg-green-50 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200"
+                >
+                  <option value="">-- Choose a table --</option>
+                  {availableTables.map(table => (
+                    <option key={table} value={table}>
+                      {table}
+                    </option>
+                  ))}
+                </select>
+                {availableTables.length === 0 && (
+                  <p className="text-sm text-orange-600 mt-1">💡 No tables available</p>
+                )}
+              </div>
+
+              <div>
                 <label htmlFor="submission-select" className="block text-sm font-medium text-gray-700 mb-2">
                   Select Your Submitted Data
                 </label>
@@ -436,16 +512,25 @@ export default function HomePage() {
                   value={selectedSubmissionId}
                   onChange={(e) => setSelectedSubmissionId(e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  disabled={!selectedTable}
                 >
                   <option value="">-- Choose from your submitted data --</option>
-                  {submissions.map(submission => (
-                    <option key={submission.id} value={submission.id}>
-                      {submission.name} (Age {submission.age}) - {submission.email}
-                    </option>
-                  ))}
+                  {tableRecords.map(record => {
+                    // Try to create a meaningful label from the record
+                    const label = record.name || record.first_name || record.username || `Record #${record.id}`;
+                    const detail = record.email || record.city || record.position || '';
+                    return (
+                      <option key={record.id} value={record.id}>
+                        {label}{detail ? ` - ${detail}` : ''}
+                      </option>
+                    );
+                  })}
                 </select>
-                {submissions.length === 0 && (
-                  <p className="text-sm text-orange-600 mt-1">💡 Submit your data using the form on the left first</p>
+                {!selectedTable && (
+                  <p className="text-sm text-orange-600 mt-1">💡 Select a table first</p>
+                )}
+                {selectedTable && tableRecords.length === 0 && (
+                  <p className="text-sm text-orange-600 mt-1">💡 No records found in {selectedTable} table</p>
                 )}
               </div>
 
@@ -459,19 +544,23 @@ export default function HomePage() {
                   value={selectedTemplateKey}
                   onChange={(e) => setSelectedTemplateKey(e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  disabled={!selectedTable}
                 >
                   <option value="">-- Choose a PDF template --</option>
-                  {profiles.filter(profile => profile.file_path).map(profile => (
-                    <option key={profile.key} value={profile.key}>
-                      ✅ {profile.name || profile.key}
-                    </option>
-                  ))}
+                  {profiles
+                    .filter(profile => profile.file_path && (!selectedTable || profile.source_table === selectedTable))
+                    .map(profile => (
+                      <option key={profile.key} value={profile.key}>
+                        ✅ {profile.name || profile.key}
+                      </option>
+                    ))
+                  }
                 </select>
-                {profiles.length === 0 && (
-                  <p className="text-sm text-orange-600 mt-1">💡 Create PDF templates using the PDF Editor first</p>
+                {!selectedTable && (
+                  <p className="text-sm text-orange-600 mt-1">💡 Select a table first</p>
                 )}
-                {profiles.length > 0 && profiles.filter(p => p.file_path).length === 0 && (
-                  <p className="text-sm text-orange-600 mt-1">⚠️ No templates with PDF files. Upload PDFs in the PDF Editor.</p>
+                {selectedTable && profiles.filter(p => p.file_path && p.source_table === selectedTable).length === 0 && (
+                  <p className="text-sm text-orange-600 mt-1">⚠️ No templates for {selectedTable} table. Create one in PDF Editor.</p>
                 )}
               </div>
 

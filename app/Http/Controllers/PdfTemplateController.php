@@ -19,9 +19,27 @@ class PdfTemplateController extends Controller
         }
     }
 
+    public function getTableRecords($tableName)
+    {
+        // Get available tables to validate input
+        $allowedTables = PdfTemplate::getAvailableTables();
+        
+        if (!in_array($tableName, $allowedTables)) {
+            return response()->json(['error' => 'Invalid table name'], 400);
+        }
+        
+        try {
+            $records = \Illuminate\Support\Facades\DB::table($tableName)->get();
+            return response()->json($records);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Error fetching table records: " . $e->getMessage());
+            return response()->json(['error' => 'Failed to fetch table records'], 500);
+        }
+    }
+
     public function index()
     {
-        return PdfTemplate::all(['id', 'key', 'name', 'file_path']);
+        return PdfTemplate::all(['id', 'key', 'name', 'file_path', 'source_table']);
     }
 
     public function show($key)

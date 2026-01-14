@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 
 // Use static import if possible or dynamic with no SSR
@@ -162,6 +162,14 @@ export default function PdfEditorPage() {
   const [profiles, setProfiles] = useState<any[]>([]);
   const [availableTables, setAvailableTables] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Filter templates based on selected source table
+  const filteredTemplates = useMemo(() => {
+    if (!template.source_table) {
+      return profiles;
+    }
+    return profiles.filter(profile => profile.source_table === template.source_table);
+  }, [profiles, template.source_table]);
   const [saving, setSaving] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
@@ -829,10 +837,15 @@ export default function PdfEditorPage() {
                   className="w-full px-3 py-2 border border-blue-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-sm"
                 >
                   <option value="">-- Create New Template --</option>
-                  {profiles.map(p => (
+                  {filteredTemplates.map(p => (
                       <option key={p.key} value={p.key}>{p.name || p.key}</option>
                   ))}
                 </select>
+                {template.source_table && filteredTemplates.length === 0 && (
+                  <p className="text-xs text-orange-600 mt-1">
+                    No templates for {template.source_table} table yet
+                  </p>
+                )}
               </div>
 
               {/* Template Name Input */}

@@ -3,14 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 
-type Submission = {
-  id: number;
-  name: string;
-  age: string;
-  email: string;
-  created_at: string;
-};
-
 type Profile = {
   key: string;
   name?: string;
@@ -19,14 +11,7 @@ type Profile = {
 };
 
 export default function HomePage() {
-  // Data Submission State
-  const [formData, setFormData] = useState({
-    name: '',
-    age: '',
-    email: ''
-  });
-  const [submissions, setSubmissions] = useState<Submission[]>([]);
-  const [submissionLoading, setSubmissionLoading] = useState(false);
+  // State for notifications
   const [submissionMessage, setSubmissionMessage] = useState('');
   const [showPopup, setShowPopup] = useState(false);
 
@@ -43,7 +28,6 @@ export default function HomePage() {
 
   // Load data on mount
   useEffect(() => {
-    fetchSubmissions();
     fetchProfiles();
     fetchAvailableTables();
   }, []);
@@ -94,23 +78,6 @@ export default function HomePage() {
     }
   };
 
-  const fetchSubmissions = async () => {
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/submissions`, {
-        headers: {
-          'Bypass-Tunnel-Reminder': 'true',
-          'ngrok-skip-browser-warning': 'true'
-        }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setSubmissions(data);
-      }
-    } catch (error) {
-      console.error('Error fetching submissions:', error);
-    }
-  };
-
   const fetchProfiles = async () => {
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pdf-templates`, {
@@ -125,49 +92,6 @@ export default function HomePage() {
       }
     } catch (error) {
       console.error('Error fetching profiles:', error);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!formData.name || !formData.age || !formData.email) {
-      setSubmissionMessage('Please fill in all required fields.');
-      setShowPopup(true);
-      setTimeout(() => setShowPopup(false), 3000);
-      return;
-    }
-
-    setSubmissionLoading(true);
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/submissions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Bypass-Tunnel-Reminder': 'true',
-          'ngrok-skip-browser-warning': 'true'
-        },
-        body: JSON.stringify(formData)
-      });
-
-      if (res.ok) {
-        setSubmissionMessage('Data submitted successfully!');
-        setShowPopup(true);
-        setFormData({ name: '', age: '', email: '' });
-        fetchSubmissions(); // Refresh the list
-        // Auto hide popup after 3 seconds
-        setTimeout(() => setShowPopup(false), 3000);
-      } else {
-        setSubmissionMessage('Error submitting data. Please try again.');
-        setShowPopup(true);
-        setTimeout(() => setShowPopup(false), 3000);
-      }
-    } catch (error) {
-      console.error('Submit error:', error);
-      setSubmissionMessage('Network error. Please check your connection.');
-      setShowPopup(true);
-      setTimeout(() => setShowPopup(false), 3000);
-    } finally {
-      setSubmissionLoading(false);
     }
   };
 
@@ -282,141 +206,12 @@ export default function HomePage() {
               </div>
             </div>
           </div>
-        </div>
+
       </div>
 
-      {/* Main Content - Side by Side Forms */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-        <div className="grid lg:grid-cols-2 gap-8">
-          
-          {/* Left Side - Data Submission Form */}
-          <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8 animate-slide-up">
-            <div className="flex items-center mb-6">
-              <div className="w-12 h-12 bg-gray-100 border border-gray-200 rounded-xl flex items-center justify-center mr-4">
-                <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">Step 2: Submit Your Data</h2>
-                <p className="text-gray-600">Enter your personal information</p>
-              </div>
-            </div>
-
-            {/* Instructions */}
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
-              <h3 className="font-semibold text-gray-800 mb-2">Instructions:</h3>
-              <ul className="text-sm text-gray-700 space-y-1">
-                <li>• Fill in your name, age, and email (all required)</li>
-                <li>• Click Submit to save your data</li>
-                <li>• Your submission will appear below and be available for PDF generation</li>
-              </ul>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                  Full Name *
-                </label>
-                <input
-                  id="name"
-                  name="name"
-                  type="text"
-                  required
-                  value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all duration-200"
-                  placeholder="Enter your full name"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="age" className="block text-sm font-medium text-gray-700 mb-2">
-                  Age *
-                </label>
-                <input
-                  id="age"
-                  name="age"
-                  type="number"
-                  required
-                  value={formData.age}
-                  onChange={(e) => setFormData({...formData, age: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all duration-200"
-                  placeholder="Enter your age"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                  Email Address *
-                </label>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  required
-                  value={formData.email}
-                  onChange={(e) => setFormData({...formData, email: e.target.value})}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all duration-200"
-                  placeholder="Enter your email address"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={submissionLoading}
-                className="w-full bg-gray-900 text-white py-3 px-6 rounded-lg font-semibold hover:bg-gray-800 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl"
-              >
-                {submissionLoading ? (
-                  <span className="flex items-center justify-center">
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Submitting...
-                  </span>
-                ) : (
-                  'Submit Data'
-                )}
-              </button>
-            </form>
-
-            {/* Recent Submissions */}
-            <div className="mt-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-3">Your Submitted Data ({submissions.length})</h3>
-              <div className="max-h-32 overflow-y-auto space-y-2">
-                {submissions.length > 0 ? (
-                  submissions.map(submission => (
-                    <div key={submission.id} className="bg-gray-50 p-3 rounded-lg text-sm">
-                      <div className="font-medium text-gray-800">{submission.name} - Age {submission.age}</div>
-                      <div className="text-gray-600">{submission.email}</div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="text-gray-500 text-sm text-center py-4">
-                    <div className="text-2xl mb-2">📝</div>
-                    <p>No data submitted yet.</p>
-                    <p>Use the form above to submit your information.</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Link to PDF Editor */}
-            <div className="mt-6 pt-4 border-t border-gray-200">
-              <Link
-                href="/pdf-editor"
-                className="text-gray-700 hover:text-gray-900 text-sm font-medium flex items-center"
-              >
-                Need to create templates? Go to PDF Editor
-                <svg className="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </Link>
-            </div>
-          </div>
-
-          {/* Right Side - PDF Generation */}
+      {/* Main Content - Single Column */}
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
+          {/* PDF Generation */}
           <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8 animate-slide-up">
 
             {/* Status Indicators */}
@@ -440,17 +235,17 @@ export default function HomePage() {
                 </div>
               </div>
               <div className={`p-3 rounded-lg text-sm ${
-                submissions.length > 0 
+                tableRecords.length > 0 
                   ? 'bg-green-50 border border-green-200 text-green-800'
                   : 'bg-orange-50 border border-orange-200 text-orange-800'
               }`}>
                 <div className="font-medium">
-                  {submissions.length > 0 ? '✅ Data Ready' : '⚠️ No Data'}
+                  {tableRecords.length > 0 ? '✅ Data Ready' : '⚠️ No Data'}
                 </div>
                 <div className="text-xs mt-1">
-                  {submissions.length > 0 
-                    ? `${submissions.length} submission(s) available`
-                    : 'Submit your data using the form first'
+                  {tableRecords.length > 0 
+                    ? `${tableRecords.length} record(s) available`
+                    : 'Select a table to view records'
                   }
                 </div>
               </div>
@@ -575,7 +370,7 @@ export default function HomePage() {
             {/* Quick Stats */}
             <div className="mt-6 grid grid-cols-2 gap-4">
               <div className="bg-gray-50 p-3 rounded-lg text-center">
-                <div className="text-2xl font-bold text-gray-800">{submissions.length}</div>
+                <div className="text-2xl font-bold text-gray-800">{tableRecords.length}</div>
                 <div className="text-sm text-gray-600">Data Entries</div>
               </div>
               <div className="bg-gray-50 p-3 rounded-lg text-center">

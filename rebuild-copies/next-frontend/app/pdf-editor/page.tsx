@@ -805,7 +805,9 @@ export default function PdfEditorPage() {
                   id="source-table-select"
                   name="sourceTableSelect"
                   value={template.source_table || ''} 
-                  onChange={(e) => setTemplate({ ...template, source_table: e.target.value })}
+                  onChange={(e) => {
+                    setTemplate({ ...template, source_table: e.target.value, key: '' });
+                  }}
                   className="w-full px-3 py-2 border border-green-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-sm"
                 >
                   <option value="">-- Select Table --</option>

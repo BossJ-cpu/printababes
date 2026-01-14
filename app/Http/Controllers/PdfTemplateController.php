@@ -8,6 +8,17 @@ use Illuminate\Support\Facades\Storage;
 
 class PdfTemplateController extends Controller
 {
+    public function getAvailableTables()
+    {
+        try {
+            $tables = PdfTemplate::getAvailableTables();
+            return response()->json(['tables' => $tables]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Error fetching available tables: " . $e->getMessage());
+            return response()->json(['error' => 'Failed to fetch available tables'], 500);
+        }
+    }
+
     public function index()
     {
         return PdfTemplate::all(['id', 'key', 'name', 'file_path']);
@@ -45,6 +56,10 @@ class PdfTemplateController extends Controller
 
         if ($request->has('name')) {
             $data['name'] = $request->input('name');
+        }
+
+        if ($request->has('source_table')) {
+            $data['source_table'] = $request->input('source_table');
         }
 
         $template->update($data);

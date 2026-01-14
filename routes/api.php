@@ -12,6 +12,7 @@ Route::get('/user', function (Request $request) {
 
 Route::apiResource('submissions', SubmissionController::class);
 
+Route::get('available-tables', [PdfTemplateController::class, 'getAvailableTables']);
 Route::get('pdf-templates', [PdfTemplateController::class, 'index']);
 Route::post('preview-file', [PdfTemplateController::class, 'previewFile']);
 Route::get('pdf-templates/{key}/preview', [PdfTemplateController::class, 'preview']);

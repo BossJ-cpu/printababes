@@ -18,6 +18,7 @@ type TemplateConfig = {
   key: string;
   fields_config: Record<string, FieldConfig>;
   file_path?: string;
+  source_table?: string;
 };
 
 // Subcomponent: Field Row with Optimized Design
@@ -159,6 +160,7 @@ const FieldRow: React.FC<{
 export default function PdfEditorPage() {
   const [template, setTemplate] = useState<TemplateConfig>({ key: '', fields_config: {} });
   const [profiles, setProfiles] = useState<any[]>([]);
+  const [availableTables, setAvailableTables] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -274,7 +276,28 @@ export default function PdfEditorPage() {
 
   useEffect(() => {
     fetchProfiles();
+    fetchAvailableTables();
   }, []);
+
+  const fetchAvailableTables = async () => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/available-tables`, {
+        headers: {
+          'Bypass-Tunnel-Reminder': 'true',
+          'ngrok-skip-browser-warning': 'true'
+        }
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        setAvailableTables(data.tables || []);
+      } else {
+        console.error('Failed to fetch available tables');
+      }
+    } catch (error) {
+      console.error('Error fetching available tables:', error);
+    }
+  };
 
   const fetchProfiles = async () => {
       try {
@@ -402,7 +425,8 @@ export default function PdfEditorPage() {
         body: JSON.stringify({ 
             fields_config: template.fields_config,
             file_path: template.file_path,
-            name: template.key
+            name: template.key,
+            source_table: template.source_table
         }),
       });
       if(res.ok) {
@@ -764,6 +788,28 @@ export default function PdfEditorPage() {
             
             {/* Scrollable Content Area */}
             <div className="flex-1 p-4 overflow-y-auto" style={{ height: 'calc(100vh - 280px)' }}>
+              {/* Source Table Selection */}
+              <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                <label htmlFor="source-table-select" className="block text-sm font-semibold text-green-900 mb-2">
+                  Select Source Table
+                </label>
+                <select 
+                  id="source-table-select"
+                  name="sourceTableSelect"
+                  value={template.source_table || ''} 
+                  onChange={(e) => setTemplate({ ...template, source_table: e.target.value })}
+                  className="w-full px-3 py-2 border border-green-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white text-sm"
+                >
+                  <option value="">-- Select Table --</option>
+                  {availableTables.map(table => (
+                      <option key={table} value={table}>{table}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-green-700 mt-1">
+                  Choose which database table to fetch data from
+                </p>
+              </div>
+
               {/* Profile Selection */}
               <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                 <label htmlFor="profile-select" className="block text-sm font-semibold text-blue-900 mb-2">

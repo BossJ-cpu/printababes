@@ -479,7 +479,7 @@ export default function HomePage() {
               </Link>
             </div>
           </div>
-        </div>
+        
 
         {/* Footer */}
         <footer className="mt-20 pb-8 text-center">

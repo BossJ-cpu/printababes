@@ -103,10 +103,14 @@ class PdfTemplateController extends Controller
     public function preview(Request $request, $key)
     {
         try {
-            $template = PdfTemplate::where('key', $key)->firstOrFail();
+            $template = PdfTemplate::where('key', $key)->first();
+            
+            if (!$template) {
+                return response()->json(['error' => 'Template not found'], 404);
+            }
             
             if (!$template->file_path || !Storage::disk('public')->exists($template->file_path)) {
-                return response()->json(['error' => 'PDF not found'], 404);
+                return response()->json(['error' => 'PDF file not found'], 404);
             }
 
             // Full path to file
@@ -253,5 +257,86 @@ class PdfTemplateController extends Controller
         $template = PdfTemplate::where('key', $key)->firstOrFail();
         $template->delete();
         return response()->noContent();
+    }
+
+    /**
+     * Preview a PDF file directly without requiring a database record.
+     * Used for previewing newly uploaded files before saving the template.
+     */
+    public function previewFile(Request $request)
+    {
+        try {
+            $filePath = $request->input('file_path');
+            
+            if (!$filePath) {
+                return response()->json(['error' => 'file_path parameter is required'], 400);
+            }
+            
+            if (!Storage::disk('public')->exists($filePath)) {
+                return response()->json(['error' => 'PDF file not found'], 404);
+            }
+
+            $pdfPath = Storage::disk('public')->path($filePath);
+            
+            // Initialize FPDI
+            $pdf = new \setasign\Fpdi\Fpdi('P', 'mm');
+            $pdf->SetAutoPageBreak(false);
+            
+            $pageCount = $pdf->setSourceFile($pdfPath);
+
+            for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {
+                $templateId = $pdf->importPage($pageNo);
+                $size = $pdf->getTemplateSize($templateId);
+                
+                $pdf->AddPage($size['orientation'], array($size['width'], $size['height']));
+                $pdf->useTemplate($templateId);
+                
+                $pdf->SetFont('Arial', '', 12);
+                $pdf->SetTextColor(0, 0, 0);
+
+                // Get fields from request
+                $fieldsConfig = $request->input('fields_config', []);
+                if (is_string($fieldsConfig)) {
+                    $fieldsConfig = json_decode($fieldsConfig, true) ?? [];
+                }
+
+                foreach ($fieldsConfig as $fieldName => $config) {
+                     if (($config['page'] ?? 1) == $pageNo) {
+                         $text = $request->input($fieldName);
+                         
+                         if ($text === null || $text === '') {
+                            $text = "[$fieldName]";
+                         }
+                         
+                         $text = (string)$text;
+                         $x = floatval($config['x'] ?? 0);
+                         $y = floatval($config['y'] ?? 0);
+                         $fontSize = floatval($config['size'] ?? 12);
+                         
+                         $pdf->SetFontSize($fontSize);
+                        
+                        $adjustedY = $y + ($fontSize * 0.35);
+                        $textWidth = $pdf->GetStringWidth($text);
+                        $centeredX = $x - ($textWidth / 2);
+                        
+                        $pdf->Text($centeredX, $adjustedY, $text);
+                     }
+                }
+            }
+
+            return response($pdf->Output('S'), 200)
+                ->header('Content-Type', 'application/pdf');
+                
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("PDF File Preview Error", [
+                'file_path' => $request->input('file_path'),
+                'message' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'error' => 'Error processing PDF: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

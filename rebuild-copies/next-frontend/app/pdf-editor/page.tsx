@@ -181,6 +181,9 @@ export default function PdfEditorPage() {
   const [notificationType, setNotificationType] = useState<'success' | 'error' | 'info'>('info');
   const [shouldAutoPreview, setShouldAutoPreview] = useState(false);
   const [fileInputKey, setFileInputKey] = useState(Date.now()); // Force re-render of file input
+  
+  // New state for columns display and drag-and-drop
+  const [tableColumns, setTableColumns] = useState<string[]>([]);
 
   // Fetch actual PDF dimensions from backend
   const fetchPdfDimensions = async (templateKey: string, retryCount = 0): Promise<any> => {
@@ -301,6 +304,38 @@ export default function PdfEditorPage() {
       }
     } catch (error) {
       console.error('Error fetching available tables:', error);
+    }
+  };
+  
+  // Fetch columns for selected table
+  const fetchTableColumns = async (tableName: string) => {
+    if (!tableName) {
+      setTableColumns([]);
+      return;
+    }
+    
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/table-records/${tableName}`, {
+        headers: {
+          'Bypass-Tunnel-Reminder': 'true',
+          'ngrok-skip-browser-warning': 'true'
+        }
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.length > 0) {
+          const columns = Object.keys(data[0]).filter(col => 
+            col !== 'id' && col !== 'created_at' && col !== 'updated_at'
+          );
+          setTableColumns(columns);
+        } else {
+          setTableColumns([]);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching table columns:', error);
+      setTableColumns([]);
     }
   };
 
@@ -696,6 +731,37 @@ export default function PdfEditorPage() {
       });
   };
 
+  // Handle clicking column to add as field
+  const handleColumnClick = (columnName: string) => {
+    if (!template || !previewUrl) {
+      showNotif('Please upload and preview a PDF first', 'error');
+      return;
+    }
+    
+    // Check if field already exists
+    if (template.fields_config[columnName]) {
+      showNotif(`Field "${columnName}" already exists`, 'info');
+      return;
+    }
+    
+    // Add field at center of page with default values
+    setTemplate({
+      ...template,
+      fields_config: {
+        ...template.fields_config,
+        [columnName]: {
+          x: 100,
+          y: 100,
+          page: 1,
+          font: 'Arial',
+          size: 12
+        }
+      }
+    });
+    
+    showNotif(`Field "${columnName}" added to PDF`, 'success', 2000);
+  };
+  
   const handleRenameField = (oldName: string, newName: string) => {
       if(!template || !newName) return;
       if (template.fields_config[newName]) {
@@ -754,6 +820,52 @@ export default function PdfEditorPage() {
         </div>
       </div>
 
+      {/* Scrollable Columns Section - Only show if table selected and has columns */}
+      {template.source_table && tableColumns.length > 0 && (
+        <div className="max-w-full mx-auto px-6 py-2">
+          <div className="bg-white rounded-xl shadow-md border border-gray-200 p-4">
+            <div className="flex items-center gap-3 mb-3">
+              <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+              <div>
+                <h3 className="text-sm font-bold text-gray-900">Available Fields from {template.source_table}</h3>
+                <p className="text-xs text-gray-500">Click a field to add it to your PDF template</p>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <div className="flex gap-2 pb-2 min-w-min">
+                {tableColumns.map((col) => {
+                  const isAdded = !!template.fields_config[col];
+                  return (
+                    <button
+                      key={col}
+                      onClick={() => handleColumnClick(col)}
+                      disabled={isAdded}
+                      className={`
+                        px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all duration-200
+                        ${isAdded 
+                          ? 'bg-green-100 text-green-700 border-2 border-green-300 cursor-not-allowed opacity-75' 
+                          : 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700 shadow-md hover:shadow-lg hover:scale-105 active:scale-95'
+                        }
+                      `}
+                      title={isAdded ? 'Field already added' : `Click to add "${col}" field`}
+                    >
+                      {isAdded && (
+                        <svg className="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
+                        </svg>
+                      )}
+                      {col}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-full mx-auto px-6 py-4">
         <div className="grid grid-cols-12 gap-6 h-[calc(100vh-140px)]">
           
@@ -784,7 +896,9 @@ export default function PdfEditorPage() {
                   name="sourceTableSelect"
                   value={template.source_table || ''} 
                   onChange={(e) => {
-                    setTemplate({ ...template, source_table: e.target.value, key: '' });
+                    const selectedTable = e.target.value;
+                    setTemplate({ ...template, source_table: selectedTable, key: '' });
+                    fetchTableColumns(selectedTable);
                   }}
                   className="w-full px-4 py-3 border-2 border-blue-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm font-medium transition-all duration-200 hover:border-blue-400"
                 >

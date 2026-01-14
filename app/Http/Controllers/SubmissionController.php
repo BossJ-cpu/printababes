@@ -24,13 +24,34 @@ class SubmissionController extends Controller
 
     public function generatePdf($id, $templateKey = 'user_profile')
     {
-        $submission = \App\Models\Submission::findOrFail($id);
+        $template = \App\Models\PdfTemplate::where('key', $templateKey)
+            ->orWhere('name', $templateKey)
+            ->first();
         
-        $template = \App\Models\PdfTemplate::where('key', $templateKey)->first();
+        if (!$template) {
+            return response()->json(['error' => "PDF Template '{$templateKey}' not found. Upload one at /pdf-editor"], 404);
+        }
         
-        if (!$template || !$template->file_path || !\Illuminate\Support\Facades\Storage::disk('public')->exists($template->file_path)) {
-            // Fallback if no template: just dump data or 404
-             return response()->json(['error' => "PDF Template '{$templateKey}' not found. Upload one at /pdf-editor"], 404);
+        if (!$template->file_path || !\Illuminate\Support\Facades\Storage::disk('public')->exists($template->file_path)) {
+            return response()->json(['error' => "PDF template file is missing. Please upload a PDF file for template '{$templateKey}' in the PDF Editor."], 404);
+        }
+
+        // Get the source table for this template
+        $sourceTable = $template->source_table;
+        
+        if (!$sourceTable) {
+            // Fallback to old behavior - use submissions table
+            $record = \App\Models\Submission::findOrFail($id);
+            $recordData = $record->toArray();
+        } else {
+            // Use the configured source table
+            $record = \Illuminate\Support\Facades\DB::table($sourceTable)->find($id);
+            
+            if (!$record) {
+                return response()->json(['error' => "Record #{$id} not found in table '{$sourceTable}'"], 404);
+            }
+            
+            $recordData = (array) $record;
         }
 
         $pdfPath = \Illuminate\Support\Facades\Storage::disk('public')->path($template->file_path);
@@ -54,11 +75,16 @@ class SubmissionController extends Controller
             
             foreach ($fieldsConfig as $fieldName => $config) {
                  if (($config['page'] ?? 1) == $pageNo) {
-                     // Try to match submission attribute. 
-                     // The submission table has: name, email, age.
-                     // The pdf template keys might be anything.
-                     // If keys match (name, email), use them.
-                     $value = $submission->$fieldName ?? '';
+                     // Check if field name is a number (1, 2, 3, etc.)
+                     if (is_numeric($fieldName)) {
+                         // Field number system - map to column position
+                         $columnIndex = (int)$fieldName - 1; // Convert 1-based to 0-based
+                         $columns = array_values($recordData);
+                         $value = $columns[$columnIndex] ?? '';
+                     } else {
+                         // Named field - try to match column name
+                         $value = $recordData[$fieldName] ?? '';
+                     }
                      
                      $x = floatval($config['x'] ?? 0);
                      $y = floatval($config['y'] ?? 0);
@@ -67,10 +93,9 @@ class SubmissionController extends Controller
                      $pdf->SetFontSize($fontSize);
                      
                      // Adjust Y coordinate to account for text baseline
-                     // Text() places text at baseline, so we add font size to align visually with clicked position
-                     $adjustedY = $y + ($fontSize * 0.35); // 0.35 factor accounts for typical font metrics
+                     $adjustedY = $y + ($fontSize * 0.35);
                      
-                     // Center-align text: calculate width and adjust X position
+                     // Center-align text
                      $textWidth = $pdf->GetStringWidth((string)$value);
                      $centeredX = $x - ($textWidth / 2);
                      
@@ -79,7 +104,7 @@ class SubmissionController extends Controller
             }
         }
 
-        return response($pdf->Output('I', 'submission_'.$id.'.pdf'), 200)
+        return response($pdf->Output('I', 'generated_'.$id.'.pdf'), 200)
             ->header('Content-Type', 'application/pdf');
     }
 }

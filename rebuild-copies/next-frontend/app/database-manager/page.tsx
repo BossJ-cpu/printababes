@@ -2,12 +2,6 @@
 
 import { useState, useEffect } from 'react';
 
-interface Column {
-  name: string;
-  type: string;
-  nullable: boolean;
-}
-
 interface Table {
   name: string;
   columns: string[];

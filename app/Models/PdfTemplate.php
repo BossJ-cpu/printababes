@@ -14,14 +14,32 @@ class PdfTemplate extends Model
         'fields_config' => 'array',
     ];
 
-    // Get all tables except pdf_templates
+    // Get all tables except pdf_templates and Laravel system tables
     public static function getAvailableTables()
     {
         $tables = DB::select('SELECT name FROM sqlite_master WHERE type="table"');
+        
+        // Laravel system tables to exclude
+        $systemTables = [
+            'migrations',
+            'pdf_templates',
+            'users',
+            'password_reset_tokens',
+            'sessions',
+            'cache',
+            'cache_locks',
+            'jobs',
+            'job_batches',
+            'failed_jobs',
+            'personal_access_tokens',
+            'submissions',
+            'sqlite_sequence'
+        ];
+        
         $availableTables = [];
         foreach ($tables as $table) {
             $tableName = $table->name;
-            if ($tableName !== 'pdf_templates' && $tableName !== 'migrations') {
+            if (!in_array($tableName, $systemTables)) {
                 $availableTables[] = $tableName;
             }
         }

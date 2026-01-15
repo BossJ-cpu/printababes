@@ -24,6 +24,16 @@ class SubmissionController extends Controller
 
     public function generatePdf($id, $templateKey = 'user_profile')
     {
+        // Add CORS headers immediately
+        header('Access-Control-Allow-Origin: *');
+        header('Access-Control-Allow-Methods: GET, HEAD, OPTIONS');
+        header('Access-Control-Allow-Headers: Content-Type, Authorization, Bypass-Tunnel-Reminder, ngrok-skip-browser-warning');
+        
+        // Handle OPTIONS preflight request
+        if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+            return response('', 200);
+        }
+        
         $template = \App\Models\PdfTemplate::where('key', $templateKey)
             ->orWhere('name', $templateKey)
             ->first();
@@ -105,6 +115,9 @@ class SubmissionController extends Controller
         }
 
         return response($pdf->Output('I', 'generated_'.$id.'.pdf'), 200)
-            ->header('Content-Type', 'application/pdf');
+            ->header('Content-Type', 'application/pdf')
+            ->header('Access-Control-Allow-Origin', '*')
+            ->header('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS')
+            ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Bypass-Tunnel-Reminder, ngrok-skip-browser-warning');
     }
 }

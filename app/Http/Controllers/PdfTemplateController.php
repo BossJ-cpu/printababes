@@ -105,7 +105,9 @@ class PdfTemplateController extends Controller
                 // -dCompatibilityLevel=1.4: target version 1.4
                 // -dNOPAUSE -dBATCH: don't pause, exit after processing
                 // -dQUIET: suppress stdout
-                $cmd = "gs -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dNOPAUSE -dQUIET -dBATCH -sOutputFile=" . escapeshellarg($tempPath) . " " . escapeshellarg($fullPath);
+                // On Windows, use gswin32c or gswin64c instead of gs
+                $gsCmd = stripos(PHP_OS, 'WIN') === 0 ? 'gswin32c' : 'gs';
+                $cmd = "$gsCmd -sDEVICE=pdfwrite -dCompatibilityLevel=1.4 -dNOPAUSE -dQUIET -dBATCH -sOutputFile=" . escapeshellarg($tempPath) . " " . escapeshellarg($fullPath);
                 
                 exec($cmd, $output, $returnCode);
 

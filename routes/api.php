@@ -41,3 +41,5 @@ Route::post('/database/rows/{table}', [App\Http\Controllers\DatabaseManagerContr
 Route::put('/database/rows/{table}/{id}', [App\Http\Controllers\DatabaseManagerController::class, 'updateRow']);
 Route::delete('/database/rows/{table}/{id}', [App\Http\Controllers\DatabaseManagerController::class, 'deleteRow']);
 
+// PDF Generation route (needs CORS support)
+Route::match(['get', 'head', 'options'], '/generate-submission-pdf/{id}/{templateKey?}', [SubmissionController::class, 'generatePdf']);

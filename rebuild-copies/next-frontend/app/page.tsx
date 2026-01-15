@@ -126,7 +126,7 @@ export default function HomePage() {
       }
 
       // Generate PDF
-      let url = `${process.env.NEXT_PUBLIC_API_URL}/app/generate-submission-pdf/${selectedSubmissionId}/${selectedTemplateKey}`;
+      let url = `${process.env.NEXT_PUBLIC_API_URL}/api/generate-submission-pdf/${selectedSubmissionId}/${selectedTemplateKey}`;
       
       // Test the URL first to catch server errors
       const testResponse = await fetch(url, {

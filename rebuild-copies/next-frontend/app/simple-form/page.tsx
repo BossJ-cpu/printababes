@@ -106,7 +106,7 @@ export default function SimpleForm() {
         if (!selectedSubmissionId || !selectedTemplateKey) return;
         
         // Open PDF in new tab with optional template key
-        let url = `${process.env.NEXT_PUBLIC_API_URL}/app/generate-submission-pdf/${selectedSubmissionId}/${selectedTemplateKey}`;
+        let url = `${process.env.NEXT_PUBLIC_API_URL}/api/generate-submission-pdf/${selectedSubmissionId}/${selectedTemplateKey}`;
         window.open(url, '_blank');
     };
 

@@ -797,14 +797,14 @@ export default function PdfEditorPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b border-gray-200">
+      <header className="bg-white shadow-sm border-b border-gray-200" role="banner">
         <div className="relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 to-indigo-600/5"></div>
           <div className="relative max-w-full mx-auto px-6 py-6">
             <div className="flex items-center justify-between">
               <div>
                 <div className="inline-flex items-center gap-2 mb-2 px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-medium">
-                  <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                  <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                     <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
                   </svg>
                   Editor Mode
@@ -815,8 +815,9 @@ export default function PdfEditorPage() {
               <Link
                 href="/"
                 className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 shadow-sm hover:shadow-md"
+                aria-label="Back to Home"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                 </svg>
                 Back to Home
@@ -824,7 +825,7 @@ export default function PdfEditorPage() {
             </div>
           </div>
         </div>
-      </div>
+      </header>
 
       {/* Scrollable Columns Section - Only show if table selected and has columns */}
       {template.source_table && tableColumns.length > 0 && (
@@ -861,10 +862,10 @@ export default function PdfEditorPage() {
         <div className="grid grid-cols-12 gap-6 h-[calc(100vh-140px)]">
           
           {/* Sidebar Editor */}
-          <div className="col-span-4 bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden flex flex-col hover:shadow-2xl transition-shadow duration-300">
+          <section className="col-span-4 bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden flex flex-col hover:shadow-2xl transition-shadow duration-300" aria-label="Configuration Panel">
             <div className="p-5 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50 flex-shrink-0">
               <div className="flex items-center gap-2 mb-2">
-                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/>
                 </svg>
                 <h2 className="text-lg font-bold text-gray-900">Configuration</h2>
@@ -1097,10 +1098,10 @@ export default function PdfEditorPage() {
                 </div>
               </div>
             </div>
-          </div>
+          </section>
 
           {/* PDF Preview */}
-          <div className="col-span-8 bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden hover:shadow-2xl transition-shadow duration-300">
+          <section className="col-span-8 bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden hover:shadow-2xl transition-shadow duration-300" aria-label="PDF Preview">
             <div className="p-5 border-b border-gray-200 bg-gradient-to-r from-indigo-50 to-purple-50">
               <div className="flex items-center gap-2 mb-2">
                 <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1155,13 +1156,13 @@ export default function PdfEditorPage() {
                 )}
               </div>
             </div>
-          </div>
+          </section>
         </div>
       </div>
 
       {/* Notification Popup */}
       {showNotification && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 px-4 animate-fade-in">
+        <div className="fixed inset-0 flex items-center justify-center z-50 px-4 animate-fade-in" role="alert" aria-live="polite">
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onClick={() => setShowNotification(false)}></div>
           <div className="bg-white rounded-2xl p-6 shadow-2xl transform transition-all relative z-10 max-w-md w-full border border-gray-200 animate-scale-in">
             <div className="flex items-start gap-4 mb-6">

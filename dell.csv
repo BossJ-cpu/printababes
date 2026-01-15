@@ -1,0 +1,11 @@
+id,city,address,username,zip_code,first_name,last_name,created_at,updated_at
+1,"New York","123 Broadway St","nyuser1","10001","Alice","Johnson","2026-01-15 01:54:54","2026-01-15 01:54:54"
+2,"Los Angeles","456 Sunset Blvd","lauser2","90001","Bob","Williams","2026-01-15 01:54:54","2026-01-15 01:54:54"
+3,"Chicago","789 Michigan Ave","chiuser3","60601","Charlie","Brown","2026-01-15 01:54:54","2026-01-15 01:54:54"
+4,"Houston","321 Main St","houuser4","77001","Diana","Miller","2026-01-15 01:54:54","2026-01-15 01:54:54"
+5,"Phoenix","654 Desert Rd","phxuser5","85001","Edward","Davis","2026-01-15 01:54:54","2026-01-15 01:54:54"
+6,"Philadelphia","987 Liberty Ave","phluser6","19101","Fiona","Wilson","2026-01-15 01:54:54","2026-01-15 01:54:54"
+7,"San Antonio","147 River Walk","sauser7","78201","George","Moore","2026-01-15 01:54:54","2026-01-15 01:54:54"
+8,"San Diego","258 Ocean Blvd","sduser8","92101","Hannah","Taylor","2026-01-15 01:54:54","2026-01-15 01:54:54"
+9,"Dallas","369 Commerce St","daluser9","75201","Isaac","Anderson","2026-01-15 01:54:54","2026-01-15 01:54:54"
+10,"San Jose","741 Tech Dr","sjuser10","95101","Julia","Thomas","2026-01-15 01:54:54","2026-01-15 01:54:54"

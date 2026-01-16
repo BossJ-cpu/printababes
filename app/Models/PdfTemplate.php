@@ -8,11 +8,17 @@ use Illuminate\Support\Facades\Schema;
 
 class PdfTemplate extends Model
 {
-    protected $fillable = ['key', 'name', 'fields_config', 'file_path', 'source_table'];
+    protected $fillable = ['key', 'name', 'fields_config', 'file_path', 'source_table', 'pdf_path', 'elements', 'data_source_type'];
 
     protected $casts = [
         'fields_config' => 'array',
+        'elements' => 'array',
     ];
+
+    public function dataImport()
+    {
+        return $this->hasOne(DataImport::class);
+    }
 
     // Get all tables except pdf_templates and Laravel system tables
     public static function getAvailableTables()

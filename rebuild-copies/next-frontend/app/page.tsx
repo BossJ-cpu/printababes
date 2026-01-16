@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import ThemeToggle from './components/ThemeToggle';
 
 type Profile = {
   key: string;
@@ -11,6 +13,8 @@ type Profile = {
 };
 
 export default function HomePage() {
+  const router = useRouter();
+  
   // State for notifications
   const [submissionMessage, setSubmissionMessage] = useState('');
   const [showPopup, setShowPopup] = useState(false);
@@ -178,12 +182,15 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-dark-bg dark:via-dark-bg dark:to-dark-bg transition-colors duration-300">
       {/* Hero Section */}
-      <div className="relative overflow-hidden bg-white shadow-sm">
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 to-indigo-600/5"></div>
+      <div className="relative overflow-hidden bg-white dark:bg-dark-card shadow-sm transition-colors duration-300">
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 to-indigo-600/5 dark:from-blue-400/10 dark:to-indigo-400/10"></div>
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
-          <div className="inline-flex items-center gap-2 mb-4 px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+          <div className="absolute top-4 right-4">
+            <ThemeToggle />
+          </div>
+          <div className="inline-flex items-center gap-2 mb-4 px-4 py-2 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-sm font-medium transition-colors duration-300">
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
               <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
               <path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd"/>
@@ -193,25 +200,25 @@ export default function HomePage() {
           <h1 className="text-5xl md:text-7xl font-extrabold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-4">
             PDF Generator
           </h1>
-          <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
+          <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto transition-colors duration-300">
             Create professional PDFs by combining your data with custom templates
           </p>
-          <div className="bg-white border border-gray-200 rounded-2xl shadow-xl p-8 max-w-4xl mx-auto">
+          <div className="bg-white dark:bg-dark-card border border-gray-200 dark:border-dark-border rounded-2xl shadow-xl p-8 max-w-4xl mx-auto transition-colors duration-300">
             <div className="flex items-center justify-center gap-2 mb-6">
               <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z"/>
               </svg>
-              <h2 className="text-2xl font-bold text-gray-900">2 Simple Steps</h2>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white transition-colors duration-300">2 Simple Steps</h2>
             </div>
             <div className="grid md:grid-cols-2 gap-6">
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200 hover:shadow-lg transition-all duration-300 group">
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-6 border border-blue-200 dark:border-blue-700 hover:shadow-lg transition-all duration-300 group">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="flex items-center justify-center w-10 h-10 bg-blue-600 text-white rounded-full font-bold text-lg group-hover:scale-110 transition-transform">
                     1
                   </div>
-                  <h3 className="text-lg font-bold text-gray-900">Create Template</h3>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white transition-colors duration-300">Create Template</h3>
                 </div>
-                <p className="text-gray-700 mb-4 text-sm">Upload your PDF and configure field positions using our intuitive editor</p>
+                <p className="text-gray-700 dark:text-gray-300 mb-4 text-sm transition-colors duration-300">Upload your PDF and configure field positions using our intuitive editor</p>
                 <a href="/pdf-editor" className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-semibold text-sm group-hover:gap-3 transition-all">
                   Open PDF Editor
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -219,14 +226,14 @@ export default function HomePage() {
                   </svg>
                 </a>
               </div>
-              <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-6 border border-indigo-200 hover:shadow-lg transition-all duration-300 group">
+              <div className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-xl p-6 border border-indigo-200 dark:border-indigo-700 hover:shadow-lg transition-all duration-300 group">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="flex items-center justify-center w-10 h-10 bg-indigo-600 text-white rounded-full font-bold text-lg group-hover:scale-110 transition-transform">
                     2
                   </div>
-                  <h3 className="text-lg font-bold text-gray-900">Generate PDF</h3>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white transition-colors duration-300">Generate PDF</h3>
                 </div>
-                <p className="text-gray-700 text-sm">Select your data source and template to create your final PDF document</p>
+                <p className="text-gray-700 dark:text-gray-300 text-sm transition-colors duration-300">Select your data source and template to create your final PDF document</p>
               </div>
             </div>
           </div>
@@ -236,60 +243,86 @@ export default function HomePage() {
       {/* Main Content - Single Column */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           {/* PDF Generation */}
-          <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-8 hover:shadow-2xl transition-shadow duration-300">
+          <div className="bg-white dark:bg-dark-card rounded-3xl shadow-xl border border-gray-100 dark:border-dark-border p-8 hover:shadow-2xl transition-all duration-300">
 
-            {/* Status Indicators */}
-            <div className="grid grid-cols-2 gap-4 mb-8">
-              <div className={`p-4 rounded-xl text-sm transition-all duration-300 ${
-                profiles.length > 0 && profiles.some(p => p.file_path)
-                  ? 'bg-gradient-to-br from-emerald-50 to-green-50 border-2 border-emerald-200 text-emerald-800'
-                  : profiles.length > 0 
-                  ? 'bg-gradient-to-br from-amber-50 to-yellow-50 border-2 border-amber-200 text-amber-800'
-                  : 'bg-gradient-to-br from-orange-50 to-red-50 border-2 border-orange-200 text-orange-800'
-              }`}>
-                <div className="flex items-center gap-2 font-semibold mb-2">
-                  {profiles.length > 0 && profiles.some(p => p.file_path) ? (
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
-                    </svg>
-                  ) : (
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
-                    </svg>
-                  )}
-                  {profiles.length > 0 && profiles.some(p => p.file_path) ? 'Templates Ready' : 
-                   profiles.length > 0 ? 'Templates Need PDFs' : 'No Templates'}
-                </div>
-                <div className="text-xs opacity-90">
-                  {profiles.length > 0 
-                    ? `${profiles.filter(p => p.file_path).length}/${profiles.length} have PDF files`
-                    : 'Create templates in PDF Editor first'
-                  }
-                </div>
-              </div>
-              <div className={`p-4 rounded-xl text-sm transition-all duration-300 ${
-                tableRecords.length > 0 
-                  ? 'bg-gradient-to-br from-emerald-50 to-green-50 border-2 border-emerald-200 text-emerald-800'
-                  : 'bg-gradient-to-br from-orange-50 to-red-50 border-2 border-orange-200 text-orange-800'
-              }`}>
-                <div className="flex items-center gap-2 font-semibold mb-2">
-                  {tableRecords.length > 0 ? (
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"/>
-                    </svg>
-                  ) : (
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd"/>
-                    </svg>
-                  )}
-                  {tableRecords.length > 0 ? 'Data Ready' : 'No Data'}
-                </div>
-                <div className="text-xs opacity-90">
-                  {tableRecords.length > 0 
-                    ? `${tableRecords.length} record(s) available`
-                    : 'Select a table to view records'
-                  }
-                </div>
+            {/* Workflow Options */}
+            <div className="mb-8">
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 flex items-center gap-2 transition-colors duration-300">
+                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                </svg>
+                Choose Your Workflow
+              </h3>
+              <div className="grid grid-cols-2 gap-4">
+                {/* Option A: Database Table */}
+                <button
+                  onClick={() => router.push('/pdf-editor?mode=database')}
+                  className="group p-5 rounded-xl border-2 border-blue-200 dark:border-blue-700 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 hover:from-blue-100 hover:to-indigo-100 dark:hover:from-blue-800/30 dark:hover:to-indigo-800/30 hover:border-blue-300 dark:hover:border-blue-600 transition-all duration-300 text-left hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className="p-2 bg-blue-600 rounded-lg group-hover:bg-blue-700 transition-colors">
+                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-gray-900 dark:text-white text-base mb-1 transition-colors duration-300">Option A</h4>
+                      <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold transition-colors duration-300">PDF + Database Table</p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 mb-3 transition-colors duration-300">
+                    Choose a database table and upload your PDF template
+                  </p>
+                  <ul className="space-y-1.5 text-xs text-gray-600">
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-600 mt-0.5">✓</span>
+                      <span>Select existing database table</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-600 mt-0.5">✓</span>
+                      <span>Upload PDF template</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-blue-600 mt-0.5">✓</span>
+                      <span>Drag & drop table fields</span>
+                    </li>
+                  </ul>
+                </button>
+
+                {/* Option B: CSV/Excel */}
+                <button
+                  onClick={() => router.push('/pdf-editor?mode=csv')}
+                  className="group p-5 rounded-xl border-2 border-green-200 dark:border-green-700 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 hover:from-green-100 hover:to-emerald-100 dark:hover:from-green-800/30 dark:hover:to-emerald-800/30 hover:border-green-300 dark:hover:border-green-600 transition-all duration-300 text-left hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className="p-2 bg-green-600 rounded-lg group-hover:bg-green-700 transition-colors">
+                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-gray-900 dark:text-white text-base mb-1 transition-colors duration-300">Option B</h4>
+                      <p className="text-xs text-green-600 dark:text-green-400 font-semibold transition-colors duration-300">PDF + CSV/Excel File</p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 mb-3 transition-colors duration-300">
+                    Upload CSV/Excel file and your PDF template
+                  </p>
+                  <ul className="space-y-1.5 text-xs text-gray-600 dark:text-gray-400 transition-colors duration-300">
+                    <li className="flex items-start gap-2">
+                      <span className="text-green-600 dark:text-green-400 mt-0.5">✓</span>
+                      <span>Upload CSV/Excel file</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-green-600 dark:text-green-400 mt-0.5">✓</span>
+                      <span>Columns appear automatically</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-green-600 dark:text-green-400 mt-0.5">✓</span>
+                      <span>Upload PDF & drag columns</span>
+                    </li>
+                  </ul>
+                </button>
               </div>
             </div>
 

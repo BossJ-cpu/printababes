@@ -375,4 +375,213 @@ class PdfTemplateController extends Controller
             ], 500);
         }
     }
+
+    public function generateBulk(PdfTemplate $template)
+    {
+        try {
+            $import = $template->dataImport;
+            
+            if (!$import) {
+                return response()->json(['error' => 'No data import found'], 400);
+            }
+
+            if (!$template->file_path) {
+                return response()->json(['error' => 'No PDF template uploaded'], 400);
+            }
+
+            // Read data from CSV/Excel file
+            $filePath = storage_path('app/public/' . $import->file_path);
+            
+            if (!file_exists($filePath)) {
+                return response()->json(['error' => 'Import file not found at: ' . $filePath], 404);
+            }
+
+            $allData = \Maatwebsite\Excel\Facades\Excel::toArray([], $filePath)[0];
+            $headers = array_shift($allData);
+            
+            \Illuminate\Support\Facades\Log::info('Bulk PDF Generation Started', [
+                'template_id' => $template->id,
+                'total_rows' => count($allData),
+                'headers' => $headers,
+                'fields_config' => $template->fields_config
+            ]);
+            
+            $pdfSourcePath = storage_path('app/public/' . $template->file_path);
+            
+            if (!file_exists($pdfSourcePath)) {
+                return response()->json(['error' => 'PDF template file not found at: ' . $pdfSourcePath], 404);
+            }
+
+            // Create session directory for this batch
+            $sessionId = 'bulk_' . $template->key . '_' . time();
+            $sessionDir = 'generated/' . $sessionId;
+            
+            if (!Storage::disk('public')->exists($sessionDir)) {
+                Storage::disk('public')->makeDirectory($sessionDir);
+            }
+
+            $generatedFiles = [];
+
+            // Generate individual PDFs for each row
+            foreach ($allData as $rowIndex => $rowData) {
+                // Create new PDF for this record
+                $pdf = new \setasign\Fpdi\Fpdi('P', 'mm');
+                $pdf->SetAutoPageBreak(false);
+                
+                $pageCount = $pdf->setSourceFile($pdfSourcePath);
+                
+                for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {
+                    $templateId = $pdf->importPage($pageNo);
+                    $size = $pdf->getTemplateSize($templateId);
+                    
+                    $pdf->AddPage($size['orientation'], array($size['width'], $size['height']));
+                    $pdf->useTemplate($templateId);
+                    
+                    $pdf->SetFont('Arial', '', 12);
+                    $pdf->SetTextColor(0, 0, 0);
+
+                    // Get fields from template configuration
+                    $fieldsConfig = $template->fields_config ?? [];
+                    
+                    foreach ($fieldsConfig as $fieldName => $config) {
+                        // Only process fields for this page that have CSV column mapping
+                        if (($config['page'] ?? 1) == $pageNo && isset($config['csv_index'])) {
+                            $columnIndex = intval($config['csv_index']);
+                            $value = $rowData[$columnIndex] ?? '';
+                            
+                            $x = floatval($config['x'] ?? 0);
+                            $y = floatval($config['y'] ?? 0);
+                            $fontSize = floatval($config['size'] ?? 12);
+                            
+                            $pdf->SetFontSize($fontSize);
+                            
+                            // Center text vertically
+                            $adjustedY = $y + ($fontSize * 0.25);
+                            $textWidth = $pdf->GetStringWidth($value);
+                            $centeredX = $x - ($textWidth / 2);
+                            
+                            $pdf->Text($centeredX, $adjustedY, $value);
+                        }
+                    }
+                }
+
+                // Save individual PDF
+                $filename = 'record_' . ($rowIndex + 1) . '.pdf';
+                $filePath = $sessionDir . '/' . $filename;
+                $fullPath = storage_path('app/public/' . $filePath);
+                
+                $pdf->Output('F', $fullPath);
+                $generatedFiles[] = $filePath;
+                
+                \Illuminate\Support\Facades\Log::info("Generated PDF for record " . ($rowIndex + 1));
+            }
+
+            // Return JSON with all file paths
+            return response()->json([
+                'success' => true,
+                'session_id' => $sessionId,
+                'files' => $generatedFiles,
+                'total_records' => count($allData),
+                'message' => 'Generated ' . count($allData) . ' PDFs successfully'
+            ]);
+            
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Bulk PDF generation error: ' . $e->getMessage(), [
+                'template_id' => $template->id,
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'error' => 'Error generating bulk PDF: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function viewSinglePdf($sessionId, $index)
+    {
+        try {
+            $filePath = "generated/{$sessionId}/record_{$index}.pdf";
+            
+            if (!Storage::disk('public')->exists($filePath)) {
+                return response()->json(['error' => 'PDF not found'], 404);
+            }
+
+            $fullPath = storage_path('app/public/' . $filePath);
+            
+            return response()->file($fullPath, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline',
+                'Access-Control-Allow-Origin' => '*'
+            ]);
+            
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Single PDF view error: ' . $e->getMessage());
+            return response()->json(['error' => 'View failed'], 500);
+        }
+    }
+
+    public function downloadSinglePdf($sessionId, $index)
+    {
+        try {
+            $filePath = "generated/{$sessionId}/record_{$index}.pdf";
+            
+            if (!Storage::disk('public')->exists($filePath)) {
+                return response()->json(['error' => 'PDF not found'], 404);
+            }
+
+            $fullPath = storage_path('app/public/' . $filePath);
+            
+            return response()->download($fullPath, "record_{$index}.pdf", [
+                'Content-Type' => 'application/pdf',
+                'Access-Control-Allow-Origin' => '*'
+            ]);
+            
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Single PDF download error: ' . $e->getMessage());
+            return response()->json(['error' => 'Download failed'], 500);
+        }
+    }
+
+    public function downloadAllPdfsAsZip($sessionId)
+    {
+        try {
+            $sessionDir = "generated/{$sessionId}";
+            
+            if (!Storage::disk('public')->exists($sessionDir)) {
+                return response()->json(['error' => 'Session not found'], 404);
+            }
+
+            $files = Storage::disk('public')->files($sessionDir);
+            
+            if (empty($files)) {
+                return response()->json(['error' => 'No files found'], 404);
+            }
+
+            // Create ZIP file
+            $zipFileName = $sessionId . '.zip';
+            $zipPath = storage_path('app/public/generated/' . $zipFileName);
+            
+            $zip = new \ZipArchive();
+            
+            if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) === TRUE) {
+                foreach ($files as $file) {
+                    $fullPath = storage_path('app/public/' . $file);
+                    $fileName = basename($file);
+                    $zip->addFile($fullPath, $fileName);
+                }
+                $zip->close();
+            } else {
+                throw new \Exception('Failed to create ZIP file');
+            }
+
+            return response()->download($zipPath, $zipFileName, [
+                'Content-Type' => 'application/zip',
+                'Access-Control-Allow-Origin' => '*'
+            ])->deleteFileAfterSend(true);
+            
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('ZIP download error: ' . $e->getMessage());
+            return response()->json(['error' => 'ZIP creation failed: ' . $e->getMessage()], 500);
+        }
+    }
 }

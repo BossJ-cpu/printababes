@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\SubmissionController;
 use App\Http\Controllers\PdfTemplateController;
 use App\Http\Controllers\CoordinateTestController;
+use App\Http\Controllers\DataImportController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -30,6 +31,15 @@ Route::get('pdf-templates/{key}', [PdfTemplateController::class, 'show']);
 Route::put('pdf-templates/{key}', [PdfTemplateController::class, 'update']);
 Route::post('pdf-templates/{key}/upload', [PdfTemplateController::class, 'upload']);
 Route::delete('pdf-templates/{key}', [PdfTemplateController::class, 'destroy']);
+
+// Data Import routes for CSV/Excel bulk generation
+Route::post('templates/{template}/import', [DataImportController::class, 'upload']);
+Route::get('templates/{template}/import/data', [DataImportController::class, 'getData']);
+Route::delete('templates/{template}/import', [DataImportController::class, 'delete']);
+Route::post('templates/{template}/generate-bulk', [PdfTemplateController::class, 'generateBulk']);
+Route::get('bulk-view/{sessionId}/{index}', [PdfTemplateController::class, 'viewSinglePdf']);
+Route::get('bulk-download/{sessionId}/{index}', [PdfTemplateController::class, 'downloadSinglePdf']);
+Route::get('bulk-download-all/{sessionId}', [PdfTemplateController::class, 'downloadAllPdfsAsZip']);
 
 // Database Manager Routes
 Route::get('/database/tables', [App\Http\Controllers\DatabaseManagerController::class, 'getTables']);

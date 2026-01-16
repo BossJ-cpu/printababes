@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 
 export const metadata: Metadata = {
   title: "Printables - PDF Template Generator & Database Manager | Dynamic PDF Creation",
@@ -46,13 +47,22 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="canonical" href="https://printababes-aj3ggogle-bossj-cpus-projects.vercel.app" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            (function() {
+              const theme = localStorage.getItem('theme') || 
+                (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+              document.documentElement.classList.toggle('dark', theme === 'dark');
+            })();
+          `
+        }} />
       </head>
-      <body>
+      <body suppressHydrationWarning className="transition-colors duration-300">
         <main id="main-content" role="main">
           {children}
         </main>

@@ -456,21 +456,48 @@ class PdfTemplateController extends Controller
                             // Width is stored in pixels, convert to mm (approximately 3.78 pixels per mm at 96 DPI)
                             $widthPx = floatval($config['width'] ?? 0);
                             $widthMm = $widthPx > 0 ? $widthPx / 3.78 : 0;
+                            // Get alignment (default to 'left')
+                            $align = $config['align'] ?? 'left';
                             
                             $pdf->SetFontSize($fontSize);
                             
+                            // Calculate X position based on alignment
+                            // The stored X is the anchor point based on alignment
+                            $startX = $x;
+                            if ($widthMm > 0) {
+                                if ($align === 'center') {
+                                    $startX = $x - ($widthMm / 2);
+                                } elseif ($align === 'right') {
+                                    $startX = $x - $widthMm;
+                                }
+                                // For 'left', startX stays at $x
+                                $startX = max(0, $startX); // Don't go negative
+                            }
+                            
+                            // Map alignment to FPDF alignment codes
+                            $fpdfAlign = 'L'; // Default left
+                            if ($align === 'center') {
+                                $fpdfAlign = 'C';
+                            } elseif ($align === 'right') {
+                                $fpdfAlign = 'R';
+                            }
+                            
                             // Check if wrap text is enabled and width is set
                             if ($wrapText && $widthMm > 0) {
-                                // Use MultiCell for text wrapping
-                                $pdf->SetXY($x, $y);
+                                // Use MultiCell for text wrapping with alignment
+                                $pdf->SetXY($startX, $y);
                                 $lineHeight = $fontSize * 0.4; // Line height in mm
-                                $pdf->MultiCell($widthMm, $lineHeight, $value, 0, 'L');
-                            } else {
-                                // Standard single-line text
+                                $pdf->MultiCell($widthMm, $lineHeight, $value, 0, $fpdfAlign);
+                            } else if ($widthMm > 0) {
+                                // Single line with width and alignment
+                                $pdf->SetXY($startX, $y);
                                 $adjustedY = $y + ($fontSize * 0.25);
-                                $textWidth = $pdf->GetStringWidth($value);
-                                $centeredX = $x - ($textWidth / 2);
-                                $pdf->Text($centeredX, $adjustedY, $value);
+                                $pdf->SetXY($startX, $adjustedY);
+                                $pdf->Cell($widthMm, $fontSize * 0.4, $value, 0, 0, $fpdfAlign);
+                            } else {
+                                // No width specified - standard single-line text
+                                $adjustedY = $y + ($fontSize * 0.25);
+                                $pdf->Text($x, $adjustedY, $value);
                             }
                         }
                     }

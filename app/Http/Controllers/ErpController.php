@@ -161,17 +161,39 @@ class ErpController extends Controller
                         $widthPx = $config['width'] ?? 0;
                         $width = $widthPx > 0 ? $widthPx / 3.78 : 0;
                         $wrapText = $config['wrap_text'] ?? false;
+                        // Get alignment (default to 'left')
+                        $align = $config['align'] ?? 'left';
 
                         $pdf->SetFontSize($fontSize);
-                        $pdf->SetXY($x, $y);
+                        
+                        // Calculate X position based on alignment
+                        $startX = $x;
+                        if ($width > 0) {
+                            if ($align === 'center') {
+                                $startX = $x - ($width / 2);
+                            } elseif ($align === 'right') {
+                                $startX = $x - $width;
+                            }
+                            $startX = max(0, $startX);
+                        }
+                        
+                        // Map alignment to FPDF alignment codes
+                        $fpdfAlign = 'L';
+                        if ($align === 'center') {
+                            $fpdfAlign = 'C';
+                        } elseif ($align === 'right') {
+                            $fpdfAlign = 'R';
+                        }
                         
                         if ($wrapText && $width > 0) {
-                            $lineHeight = $fontSize * 0.4; // Line height in mm
-                            $pdf->MultiCell($width, $lineHeight, (string)$value, 0, 'L');
+                            $pdf->SetXY($startX, $y);
+                            $lineHeight = $fontSize * 0.4;
+                            $pdf->MultiCell($width, $lineHeight, (string)$value, 0, $fpdfAlign);
                         } else if ($width > 0) {
-                            // Use Cell to limit width if provided but not wrapping
-                             $pdf->Cell($width, $fontSize / 2, (string)$value);
+                            $pdf->SetXY($startX, $y);
+                            $pdf->Cell($width, $fontSize / 2, (string)$value, 0, 0, $fpdfAlign);
                         } else {
+                            $pdf->SetXY($x, $y);
                             $pdf->Write(0, (string)$value);
                         }
                     }
@@ -771,16 +793,39 @@ class ErpController extends Controller
                     $widthPx = $config['width'] ?? 0;
                     $width = $widthPx > 0 ? $widthPx / 3.78 : 0;
                     $wrapText = $config['wrap_text'] ?? false;
+                    // Get alignment (default to 'left')
+                    $align = $config['align'] ?? 'left';
 
                     $pdf->SetFontSize($fontSize);
-                    $pdf->SetXY($x, $y);
+                    
+                    // Calculate X position based on alignment
+                    $startX = $x;
+                    if ($width > 0) {
+                        if ($align === 'center') {
+                            $startX = $x - ($width / 2);
+                        } elseif ($align === 'right') {
+                            $startX = $x - $width;
+                        }
+                        $startX = max(0, $startX);
+                    }
+                    
+                    // Map alignment to FPDF alignment codes
+                    $fpdfAlign = 'L';
+                    if ($align === 'center') {
+                        $fpdfAlign = 'C';
+                    } elseif ($align === 'right') {
+                        $fpdfAlign = 'R';
+                    }
                     
                     if ($wrapText && $width > 0) {
-                        $lineHeight = $fontSize * 0.4; // Line height in mm
-                        $pdf->MultiCell($width, $lineHeight, (string)$value, 0, 'L');
+                        $pdf->SetXY($startX, $y);
+                        $lineHeight = $fontSize * 0.4;
+                        $pdf->MultiCell($width, $lineHeight, (string)$value, 0, $fpdfAlign);
                     } else if ($width > 0) {
-                        $pdf->Cell($width, $fontSize / 2, (string)$value);
+                        $pdf->SetXY($startX, $y);
+                        $pdf->Cell($width, $fontSize / 2, (string)$value, 0, 0, $fpdfAlign);
                     } else {
+                        $pdf->SetXY($x, $y);
                         $pdf->Write(0, (string)$value);
                     }
                 }

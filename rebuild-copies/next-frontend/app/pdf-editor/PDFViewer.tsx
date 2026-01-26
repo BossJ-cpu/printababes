@@ -11,6 +11,7 @@ type FieldConfig = {
   page?: number;
   width?: number;
   wrap_text?: boolean;
+  align?: 'left' | 'center' | 'right';
 };
 
 type TemplateConfig = {
@@ -23,7 +24,7 @@ interface PDFViewerProps {
     onAddField?: (x: number, y: number, page: number) => void;
     onUpdateField?: (fieldKey: string, x: number, y: number) => void;
     onDropField?: (fieldName: string, x: number, y: number, page: number) => void;
-    onFieldPropertyChange?: (fieldKey: string, property: string, value: number | boolean) => void;
+    onFieldPropertyChange?: (fieldKey: string, property: string, value: number | boolean | string) => void;
     coordinateTestMode?: boolean;
     onCoordinateTest?: (x: number, y: number, page: number) => void;
     backendDimensions?: Record<number, {width: number, height: number, orientation: string}>;
@@ -64,6 +65,31 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, on
         
         return { leftPercent, topPercent };
     };
+
+    // Alignment Icon Components (like Microsoft Word)
+    const AlignLeftIcon = ({ active }: { active: boolean }) => (
+        <svg width="16" height="16" viewBox="0 0 16 16" style={{ color: active ? '#2563eb' : '#9ca3af' }}>
+            <line x1="2" y1="3" x2="14" y2="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <line x1="2" y1="8" x2="10" y2="8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <line x1="2" y1="13" x2="12" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+        </svg>
+    );
+
+    const AlignCenterIcon = ({ active }: { active: boolean }) => (
+        <svg width="16" height="16" viewBox="0 0 16 16" style={{ color: active ? '#2563eb' : '#9ca3af' }}>
+            <line x1="2" y1="3" x2="14" y2="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <line x1="4" y1="8" x2="12" y2="8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <line x1="3" y1="13" x2="13" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+        </svg>
+    );
+
+    const AlignRightIcon = ({ active }: { active: boolean }) => (
+        <svg width="16" height="16" viewBox="0 0 16 16" style={{ color: active ? '#2563eb' : '#9ca3af' }}>
+            <line x1="2" y1="3" x2="14" y2="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <line x1="6" y1="8" x2="14" y2="8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+            <line x1="4" y1="13" x2="14" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+        </svg>
+    );
 
     const onPageLoad = (page: any) => {
         // page.originalWidth/Height are in points (1/72 inch)
@@ -368,16 +394,31 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, on
                                 const isSelected = selectedFieldKey === key;
                                 const isBeingDragged = dragState.fieldKey === key;
                                 
+                                // Check if width is set and get alignment
+                                const hasWidth = conf.width && conf.width > 0;
+                                const alignment = conf.align || 'left'; // Default to left
+                                
+                                // Calculate transform based on alignment
+                                // X coordinate is the anchor point based on alignment
+                                let transformX = '0'; // left align: X is start point
+                                if (hasWidth) {
+                                    if (alignment === 'center') {
+                                        transformX = '-50%'; // center: X is center point
+                                    } else if (alignment === 'right') {
+                                        transformX = '-100%'; // right: X is end point
+                                    }
+                                }
+                                
                                 return (
                                 <div key={key}>
-                                    {/* Draggable Field Label - ERP Style */}
+                                    {/* Draggable Field Label - ERP Style with Alignment-based Positioning */}
                                     <div
                                         style={{
                                             position: 'absolute',
                                             backgroundColor: 'rgba(37, 99, 235, 0.9)', // blue-600/90
                                             color: 'white',
                                             fontSize: '12px',
-                                            lineHeight: '1',
+                                            lineHeight: '1.3',
                                             fontWeight: '600',
                                             padding: '6px 12px',
                                             left: `${leftPercent}%`,
@@ -387,12 +428,16 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, on
                                             userSelect: 'none',
                                             zIndex: isSelected ? 30 : 10,
                                             boxShadow: '0 4px 6px rgba(0,0,0,0.15)',
-                                            transform: 'translate(0, -100%)',
+                                            // Position based on alignment
+                                            transform: `translate(${transformX}, -100%)`,
                                             display: 'flex',
+                                            flexDirection: hasWidth && conf.wrap_text ? 'column' : 'row',
                                             alignItems: 'center',
+                                            justifyContent: 'center',
+                                            textAlign: alignment,
                                             whiteSpace: conf.wrap_text ? 'normal' : 'nowrap',
                                             wordBreak: conf.wrap_text ? 'break-all' : 'normal',
-                                            width: conf.width && conf.width > 0 ? `${conf.width}px` : 'auto',
+                                            width: hasWidth ? `${conf.width}px` : 'auto',
                                             outline: isSelected ? '4px solid #facc15' : 'none' // yellow-400 ring
                                         }}
                                         onMouseDown={(e) => handleFieldMouseDown(e, key, conf)}
@@ -486,7 +531,7 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, on
                                                 onBlur={(e) => e.currentTarget.style.borderColor = '#d1d5db'}
                                               />
                                             </div>
-                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
                                               <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#6b7280' }}>Wrap Text</label>
                                               <input 
                                                 type="checkbox" 
@@ -496,6 +541,75 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, on
                                                 }}
                                                 style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#2563eb' }}
                                               />
+                                            </div>
+                                            {/* Alignment Icons */}
+                                            <div style={{ marginBottom: '12px' }}>
+                                              <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#6b7280', display: 'block', marginBottom: '6px' }}>Alignment</label>
+                                              <div style={{ 
+                                                display: 'flex', 
+                                                gap: '2px', 
+                                                background: '#f3f4f6', 
+                                                borderRadius: '6px', 
+                                                padding: '4px' 
+                                              }}>
+                                                <button
+                                                  onClick={(e) => { e.stopPropagation(); onFieldPropertyChange(key, 'align', 'left'); }}
+                                                  style={{
+                                                    flex: 1,
+                                                    padding: '6px',
+                                                    borderRadius: '4px',
+                                                    border: 'none',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    justifyContent: 'center',
+                                                    alignItems: 'center',
+                                                    background: alignment === 'left' ? 'white' : 'transparent',
+                                                    boxShadow: alignment === 'left' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                                                    transition: 'all 0.15s'
+                                                  }}
+                                                  title="Align Left"
+                                                >
+                                                  <AlignLeftIcon active={alignment === 'left'} />
+                                                </button>
+                                                <button
+                                                  onClick={(e) => { e.stopPropagation(); onFieldPropertyChange(key, 'align', 'center'); }}
+                                                  style={{
+                                                    flex: 1,
+                                                    padding: '6px',
+                                                    borderRadius: '4px',
+                                                    border: 'none',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    justifyContent: 'center',
+                                                    alignItems: 'center',
+                                                    background: alignment === 'center' ? 'white' : 'transparent',
+                                                    boxShadow: alignment === 'center' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                                                    transition: 'all 0.15s'
+                                                  }}
+                                                  title="Align Center"
+                                                >
+                                                  <AlignCenterIcon active={alignment === 'center'} />
+                                                </button>
+                                                <button
+                                                  onClick={(e) => { e.stopPropagation(); onFieldPropertyChange(key, 'align', 'right'); }}
+                                                  style={{
+                                                    flex: 1,
+                                                    padding: '6px',
+                                                    borderRadius: '4px',
+                                                    border: 'none',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    justifyContent: 'center',
+                                                    alignItems: 'center',
+                                                    background: alignment === 'right' ? 'white' : 'transparent',
+                                                    boxShadow: alignment === 'right' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                                                    transition: 'all 0.15s'
+                                                  }}
+                                                  title="Align Right"
+                                                >
+                                                  <AlignRightIcon active={alignment === 'right'} />
+                                                </button>
+                                              </div>
                                             </div>
                                             <div style={{ 
                                               fontSize: '10px', 
@@ -509,6 +623,20 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, on
                                               <span>X: {Math.round(conf.x)}</span>
                                               <span>Y: {Math.round(conf.y)}</span>
                                             </div>
+                                            {/* Alignment position note */}
+                                            {hasWidth && (
+                                              <div style={{
+                                                fontSize: '10px',
+                                                color: '#3b82f6',
+                                                marginTop: '8px',
+                                                textAlign: 'center',
+                                                padding: '4px',
+                                                background: '#eff6ff',
+                                                borderRadius: '4px'
+                                              }}>
+                                                ↔ {alignment === 'left' ? 'Starts' : alignment === 'center' ? 'Centered' : 'Ends'} at X:{Math.round(conf.x)}
+                                              </div>
+                                            )}
                                             {/* Triangle Indicator */}
                                             <div style={{
                                               position: 'absolute',
@@ -520,6 +648,49 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, on
                                               borderTop: '1px solid #e5e7eb',
                                               borderLeft: '1px solid #e5e7eb',
                                               transform: 'rotate(45deg)'
+                                            }} />
+                                          </div>
+                                        )}
+                                        
+                                        {/* Width indicator line with alignment marker */}
+                                        {hasWidth && (
+                                          <div style={{
+                                            position: 'absolute',
+                                            bottom: '-8px',
+                                            left: '0',
+                                            right: '0',
+                                            height: '2px',
+                                            background: '#facc15', // yellow-400
+                                            pointerEvents: 'none'
+                                          }}>
+                                            {/* Left edge marker */}
+                                            <div style={{
+                                              position: 'absolute',
+                                              left: '0',
+                                              top: '-4px',
+                                              width: '2px',
+                                              height: '10px',
+                                              background: '#facc15'
+                                            }} />
+                                            {/* Right edge marker */}
+                                            <div style={{
+                                              position: 'absolute',
+                                              right: '0',
+                                              top: '-4px',
+                                              width: '2px',
+                                              height: '10px',
+                                              background: '#facc15'
+                                            }} />
+                                            {/* Alignment anchor marker (red) - shows where X coordinate is */}
+                                            <div style={{
+                                              position: 'absolute',
+                                              left: alignment === 'left' ? '0' : alignment === 'center' ? '50%' : '100%',
+                                              transform: alignment === 'center' ? 'translateX(-50%)' : alignment === 'right' ? 'translateX(-100%)' : 'none',
+                                              top: '-6px',
+                                              width: '4px',
+                                              height: '14px',
+                                              background: '#ef4444', // red-500
+                                              borderRadius: '2px'
                                             }} />
                                           </div>
                                         )}

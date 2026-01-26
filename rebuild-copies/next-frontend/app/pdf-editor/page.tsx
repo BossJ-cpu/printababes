@@ -17,6 +17,7 @@ type FieldConfig = {
   csv_index?: number;
   width?: number;
   wrap_text?: boolean;
+  align?: 'left' | 'center' | 'right';
 };
 
 type TemplateConfig = {

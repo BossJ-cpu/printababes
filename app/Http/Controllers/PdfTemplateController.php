@@ -80,6 +80,10 @@ class PdfTemplateController extends Controller
             $data['source_table'] = $request->input('source_table');
         }
 
+        if ($request->has('images_config')) {
+            $data['images_config'] = $request->input('images_config');
+        }
+
         $template->update($data);
 
         return $template;
@@ -223,6 +227,40 @@ class PdfTemplateController extends Controller
                         
                         $pdf->Text($centeredX, $adjustedY, $text);
                      }
+                }
+                
+                // Render images (e-signatures, stamps, etc.) for this page
+                $imagesConfig = $template->images_config ?? [];
+                if (is_string($imagesConfig)) {
+                    $imagesConfig = json_decode($imagesConfig, true) ?? [];
+                }
+                foreach ($imagesConfig as $imageKey => $imageConfig) {
+                    if (($imageConfig['page'] ?? 1) == $pageNo && isset($imageConfig['dataUrl'])) {
+                        $imgX = floatval($imageConfig['x'] ?? 0);
+                        $imgY = floatval($imageConfig['y'] ?? 0);
+                        $imgWidth = floatval($imageConfig['width'] ?? 20);
+                        $imgHeight = floatval($imageConfig['height'] ?? 20);
+                        
+                        $dataUrl = $imageConfig['dataUrl'];
+                        if (preg_match('/^data:image\/(\w+);base64,/', $dataUrl, $matches)) {
+                            $imageType = strtoupper($matches[1]);
+                            $base64Data = substr($dataUrl, strpos($dataUrl, ',') + 1);
+                            $imageData = base64_decode($base64Data);
+                            
+                            $tempFile = tempnam(sys_get_temp_dir(), 'pdf_img_') . '.' . strtolower($imageType);
+                            file_put_contents($tempFile, $imageData);
+                            
+                            try {
+                                $pdf->Image($tempFile, $imgX, $imgY, $imgWidth, $imgHeight);
+                            } catch (\Exception $e) {
+                                \Illuminate\Support\Facades\Log::warning("Failed to add image to PDF preview: " . $e->getMessage());
+                            } finally {
+                                if (file_exists($tempFile)) {
+                                    unlink($tempFile);
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
@@ -498,6 +536,41 @@ class PdfTemplateController extends Controller
                                 // No width specified - standard single-line text
                                 $adjustedY = $y + ($fontSize * 0.25);
                                 $pdf->Text($x, $adjustedY, $value);
+                            }
+                        }
+                    }
+                    
+                    // Render images (e-signatures, stamps, etc.) for this page
+                    $imagesConfig = $template->images_config ?? [];
+                    foreach ($imagesConfig as $imageKey => $imageConfig) {
+                        if (($imageConfig['page'] ?? 1) == $pageNo && isset($imageConfig['dataUrl'])) {
+                            $imgX = floatval($imageConfig['x'] ?? 0);
+                            $imgY = floatval($imageConfig['y'] ?? 0);
+                            $imgWidth = floatval($imageConfig['width'] ?? 20); // Width in mm
+                            $imgHeight = floatval($imageConfig['height'] ?? 20); // Height in mm
+                            
+                            // Extract base64 data and save to temp file
+                            $dataUrl = $imageConfig['dataUrl'];
+                            if (preg_match('/^data:image\/(\w+);base64,/', $dataUrl, $matches)) {
+                                $imageType = strtoupper($matches[1]);
+                                $base64Data = substr($dataUrl, strpos($dataUrl, ',') + 1);
+                                $imageData = base64_decode($base64Data);
+                                
+                                // Create temp file with appropriate extension
+                                $tempFile = tempnam(sys_get_temp_dir(), 'pdf_img_') . '.' . strtolower($imageType);
+                                file_put_contents($tempFile, $imageData);
+                                
+                                try {
+                                    // Add image to PDF at specified position and size
+                                    $pdf->Image($tempFile, $imgX, $imgY, $imgWidth, $imgHeight);
+                                } catch (\Exception $e) {
+                                    \Illuminate\Support\Facades\Log::warning("Failed to add image to PDF: " . $e->getMessage());
+                                } finally {
+                                    // Clean up temp file
+                                    if (file_exists($tempFile)) {
+                                        unlink($tempFile);
+                                    }
+                                }
                             }
                         }
                     }

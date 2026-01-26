@@ -14,6 +14,16 @@ type FieldConfig = {
   align?: 'left' | 'center' | 'right';
 };
 
+type ImageConfig = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  page?: number;
+  dataUrl: string;
+  name: string;
+};
+
 type TemplateConfig = {
   fields_config: Record<string, FieldConfig>;
 };
@@ -21,10 +31,16 @@ type TemplateConfig = {
 interface PDFViewerProps {
     url: string;
     template: TemplateConfig | null;
+    images?: Record<string, ImageConfig>;
     onAddField?: (x: number, y: number, page: number) => void;
     onUpdateField?: (fieldKey: string, x: number, y: number) => void;
     onDropField?: (fieldName: string, x: number, y: number, page: number) => void;
     onFieldPropertyChange?: (fieldKey: string, property: string, value: number | boolean | string) => void;
+    onImagePositionUpdate?: (imageKey: string, x: number, y: number) => void;
+    onImagePropertyChange?: (imageKey: string, property: string, value: number | string) => void;
+    onRemoveImage?: (imageKey: string) => void;
+    selectedImageKey?: string | null;
+    onSelectImage?: (imageKey: string | null) => void;
     coordinateTestMode?: boolean;
     onCoordinateTest?: (x: number, y: number, page: number) => void;
     backendDimensions?: Record<number, {width: number, height: number, orientation: string}>;
@@ -33,14 +49,33 @@ interface PDFViewerProps {
     onRemoveField?: (fieldKey: string) => void;
 }
 
-export default function PDFViewer({ url, template, onAddField, onUpdateField, onDropField, onFieldPropertyChange, coordinateTestMode, onCoordinateTest, backendDimensions, selectedFieldKey, onSelectField, onRemoveField }: PDFViewerProps) {
+export default function PDFViewer({ 
+    url, 
+    template, 
+    images,
+    onAddField, 
+    onUpdateField, 
+    onDropField, 
+    onFieldPropertyChange, 
+    onImagePositionUpdate,
+    onImagePropertyChange,
+    onRemoveImage,
+    selectedImageKey,
+    onSelectImage,
+    coordinateTestMode, 
+    onCoordinateTest, 
+    backendDimensions, 
+    selectedFieldKey, 
+    onSelectField, 
+    onRemoveField 
+}: PDFViewerProps) {
     const [numPages, setNumPages] = useState<number>(0);
     const [pageDims, setPageDims] = useState<Record<number, {width: number, height: number}>>({});
     const [hoverCoords, setHoverCoords] = useState<{x: number, y: number} | null>(null);
     const [clickState, setClickState] = useState<{shouldPreventClick: boolean; timeStamp: number}>({shouldPreventClick: false, timeStamp: 0});
     const [isDragOver, setIsDragOver] = useState(false);
     
-    // Dragging state
+    // Dragging state for fields
     const [dragState, setDragState] = useState<{
         isDragging: boolean;
         fieldKey: string | null;
@@ -291,6 +326,7 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, on
                         <div 
                             key={pageNumber} 
                             data-page-number={pageNumber}
+                            data-pdf-page={pageNumber}
                             style={{ 
                                 position: 'relative', 
                                 backgroundColor: 'white', 
@@ -304,7 +340,7 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, on
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                overflow: 'hidden',
+                                overflow: 'visible',
                                 border: isDragOver ? '3px dashed #3b82f6' : 'none',
                                 transition: 'border 0.2s ease'
                             }}
@@ -324,6 +360,25 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, on
                                 e.preventDefault();
                                 e.stopPropagation();
                                 setIsDragOver(false);
+                                
+                                // Check if dropping an image
+                                const dragType = e.dataTransfer.getData('type');
+                                const imageKey = e.dataTransfer.getData('imageKey');
+                                
+                                if (dragType === 'moveImage' && imageKey && onImagePositionUpdate) {
+                                    // Moving an existing image
+                                    const rect = e.currentTarget.getBoundingClientRect();
+                                    const clickX = e.clientX - rect.left;
+                                    const clickY = e.clientY - rect.top;
+                                    const actualRenderWidth = rect.width;
+                                    const actualRenderHeight = rect.height;
+                                    
+                                    const mmX = (clickX / actualRenderWidth) * dims.width;
+                                    const mmY = (clickY / actualRenderHeight) * dims.height;
+                                    
+                                    onImagePositionUpdate(imageKey, parseFloat(mmX.toFixed(1)), parseFloat(mmY.toFixed(1)));
+                                    return;
+                                }
                                 
                                 const fieldName = e.dataTransfer.getData('fieldName');
                                 if (!fieldName || !onDropField) return;
@@ -697,6 +752,345 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, on
                                     </div>
                                 </div>
                             );
+                            })}
+
+                            {/* Visual Markers for Images/Signatures */}
+                            {images && Object.entries(images).map(([key, img]) => {
+                                const imagePage = img.page || 1;
+                                if (imagePage !== pageNumber) return null;
+                                
+                                const imgDims = backendDimensions?.[imagePage] || dims;
+                                const { leftPercent, topPercent } = calculateFieldPosition(img.x, img.y, imgDims);
+                                const isSelected = selectedImageKey === key;
+                                
+                                // Calculate width/height in percent
+                                const widthPercent = (img.width / imgDims.width) * 100;
+                                const heightPercent = (img.height / imgDims.height) * 100;
+                                
+                                return (
+                                    <div
+                                        key={`img-${key}`}
+                                        style={{
+                                            position: 'absolute',
+                                            left: `${leftPercent}%`,
+                                            top: `${topPercent}%`,
+                                            width: `${widthPercent}%`,
+                                            height: `${heightPercent}%`,
+                                            cursor: 'move',
+                                            zIndex: isSelected ? 35 : 15,
+                                            outline: isSelected ? '3px solid #10b981' : '2px dashed #10b981',
+                                            borderRadius: '4px',
+                                            overflow: 'visible',
+                                            backgroundColor: 'rgba(255,255,255,0.9)'
+                                        }}
+                                        draggable
+                                        onDragStart={(e) => {
+                                            e.dataTransfer.setData('imageKey', key);
+                                            e.dataTransfer.setData('type', 'moveImage');
+                                        }}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            if (onSelectImage) onSelectImage(key);
+                                            if (onSelectField) onSelectField(null); // Deselect field
+                                        }}
+                                    >
+                                        <img 
+                                            src={img.dataUrl} 
+                                            alt={img.name}
+                                            style={{
+                                                width: '100%',
+                                                height: '100%',
+                                                objectFit: 'contain',
+                                                pointerEvents: 'none'
+                                            }}
+                                        />
+                                        
+                                        {/* Image label */}
+                                        <div style={{
+                                            position: 'absolute',
+                                            bottom: '-20px',
+                                            left: '0',
+                                            background: '#10b981',
+                                            color: 'white',
+                                            fontSize: '10px',
+                                            padding: '2px 6px',
+                                            borderRadius: '4px',
+                                            whiteSpace: 'nowrap'
+                                        }}>
+                                            📷 {img.name.substring(0, 15)}{img.name.length > 15 ? '...' : ''}
+                                        </div>
+                                        
+                                        {/* Remove button - always visible */}
+                                        {onRemoveImage && (
+                                            <button
+                                                onClick={(e) => { 
+                                                    e.preventDefault();
+                                                    e.stopPropagation(); 
+                                                    if (confirm('Remove this image?')) {
+                                                        onRemoveImage(key); 
+                                                    }
+                                                }}
+                                                style={{
+                                                    position: 'absolute',
+                                                    top: '-10px',
+                                                    right: '-10px',
+                                                    width: '22px',
+                                                    height: '22px',
+                                                    background: '#ef4444',
+                                                    color: 'white',
+                                                    border: '2px solid white',
+                                                    borderRadius: '50%',
+                                                    cursor: 'pointer',
+                                                    fontSize: '14px',
+                                                    fontWeight: 'bold',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+                                                    zIndex: 100,
+                                                    lineHeight: 1
+                                                }}
+                                                title="Remove image"
+                                            >
+                                                ×
+                                            </button>
+                                        )}
+                                        
+                                        {/* Resize handles - visible when selected */}
+                                        {isSelected && onImagePropertyChange && (
+                                            <>
+                                                {/* Bottom-right resize handle */}
+                                                <div
+                                                    draggable={false}
+                                                    style={{
+                                                        position: 'absolute',
+                                                        bottom: '-8px',
+                                                        right: '-8px',
+                                                        width: '16px',
+                                                        height: '16px',
+                                                        background: '#10b981',
+                                                        border: '2px solid white',
+                                                        borderRadius: '3px',
+                                                        cursor: 'se-resize',
+                                                        zIndex: 200,
+                                                        touchAction: 'none'
+                                                    }}
+                                                    onDragStart={(e) => e.preventDefault()}
+                                                    onMouseDown={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        
+                                                        // Disable draggable on parent temporarily
+                                                        const parent = e.currentTarget.parentElement;
+                                                        if (parent) parent.setAttribute('draggable', 'false');
+                                                        
+                                                        const startX = e.clientX;
+                                                        const startY = e.clientY;
+                                                        const startWidth = img.width;
+                                                        const startHeight = img.height;
+                                                        const aspectRatio = startWidth / startHeight;
+                                                        
+                                                        const container = document.querySelector(`[data-pdf-page="${imagePage}"]`) as HTMLElement;
+                                                        
+                                                        const handleMouseMove = (moveEvent: MouseEvent) => {
+                                                            moveEvent.preventDefault();
+                                                            const deltaX = moveEvent.clientX - startX;
+                                                            const deltaY = moveEvent.clientY - startY;
+                                                            
+                                                            if (container) {
+                                                                const rect = container.getBoundingClientRect();
+                                                                const mmPerPixelX = imgDims.width / rect.width;
+                                                                const mmPerPixelY = imgDims.height / rect.height;
+                                                                
+                                                                if (moveEvent.shiftKey) {
+                                                                    const deltaMm = Math.max(deltaX * mmPerPixelX, deltaY * mmPerPixelY);
+                                                                    const newWidth = Math.max(5, startWidth + deltaMm);
+                                                                    const newHeight = newWidth / aspectRatio;
+                                                                    onImagePropertyChange(key, 'width', Math.round(newWidth));
+                                                                    onImagePropertyChange(key, 'height', Math.round(newHeight));
+                                                                } else {
+                                                                    const newWidth = Math.max(5, startWidth + deltaX * mmPerPixelX);
+                                                                    const newHeight = Math.max(5, startHeight + deltaY * mmPerPixelY);
+                                                                    onImagePropertyChange(key, 'width', Math.round(newWidth));
+                                                                    onImagePropertyChange(key, 'height', Math.round(newHeight));
+                                                                }
+                                                            }
+                                                        };
+                                                        
+                                                        const handleMouseUp = () => {
+                                                            // Re-enable draggable on parent
+                                                            if (parent) parent.setAttribute('draggable', 'true');
+                                                            document.removeEventListener('mousemove', handleMouseMove);
+                                                            document.removeEventListener('mouseup', handleMouseUp);
+                                                        };
+                                                        
+                                                        document.addEventListener('mousemove', handleMouseMove);
+                                                        document.addEventListener('mouseup', handleMouseUp);
+                                                    }}
+                                                    title="Drag to resize (hold Shift for proportional)"
+                                                />
+                                                
+                                                {/* Right edge resize handle */}
+                                                <div
+                                                    draggable={false}
+                                                    style={{
+                                                        position: 'absolute',
+                                                        top: '50%',
+                                                        right: '-8px',
+                                                        width: '10px',
+                                                        height: '24px',
+                                                        marginTop: '-12px',
+                                                        background: '#10b981',
+                                                        border: '2px solid white',
+                                                        borderRadius: '3px',
+                                                        cursor: 'e-resize',
+                                                        zIndex: 200,
+                                                        touchAction: 'none'
+                                                    }}
+                                                    onDragStart={(e) => e.preventDefault()}
+                                                    onMouseDown={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        
+                                                        const parent = e.currentTarget.parentElement;
+                                                        if (parent) parent.setAttribute('draggable', 'false');
+                                                        
+                                                        const startX = e.clientX;
+                                                        const startWidth = img.width;
+                                                        const container = document.querySelector(`[data-pdf-page="${imagePage}"]`) as HTMLElement;
+                                                        
+                                                        const handleMouseMove = (moveEvent: MouseEvent) => {
+                                                            moveEvent.preventDefault();
+                                                            const deltaX = moveEvent.clientX - startX;
+                                                            if (container) {
+                                                                const rect = container.getBoundingClientRect();
+                                                                const mmPerPixel = imgDims.width / rect.width;
+                                                                const newWidth = Math.max(5, startWidth + deltaX * mmPerPixel);
+                                                                onImagePropertyChange(key, 'width', Math.round(newWidth));
+                                                            }
+                                                        };
+                                                        
+                                                        const handleMouseUp = () => {
+                                                            if (parent) parent.setAttribute('draggable', 'true');
+                                                            document.removeEventListener('mousemove', handleMouseMove);
+                                                            document.removeEventListener('mouseup', handleMouseUp);
+                                                        };
+                                                        
+                                                        document.addEventListener('mousemove', handleMouseMove);
+                                                        document.addEventListener('mouseup', handleMouseUp);
+                                                    }}
+                                                    title="Drag to resize width"
+                                                />
+                                                
+                                                {/* Bottom edge resize handle */}
+                                                <div
+                                                    draggable={false}
+                                                    style={{
+                                                        position: 'absolute',
+                                                        bottom: '-8px',
+                                                        left: '50%',
+                                                        width: '24px',
+                                                        height: '10px',
+                                                        marginLeft: '-12px',
+                                                        background: '#10b981',
+                                                        border: '2px solid white',
+                                                        borderRadius: '3px',
+                                                        cursor: 's-resize',
+                                                        zIndex: 200,
+                                                        touchAction: 'none'
+                                                    }}
+                                                    onDragStart={(e) => e.preventDefault()}
+                                                    onMouseDown={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        
+                                                        const parent = e.currentTarget.parentElement;
+                                                        if (parent) parent.setAttribute('draggable', 'false');
+                                                        
+                                                        const startY = e.clientY;
+                                                        const startHeight = img.height;
+                                                        const container = document.querySelector(`[data-pdf-page="${imagePage}"]`) as HTMLElement;
+                                                        
+                                                        const handleMouseMove = (moveEvent: MouseEvent) => {
+                                                            moveEvent.preventDefault();
+                                                            const deltaY = moveEvent.clientY - startY;
+                                                            if (container) {
+                                                                const rect = container.getBoundingClientRect();
+                                                                const mmPerPixel = imgDims.height / rect.height;
+                                                                const newHeight = Math.max(5, startHeight + deltaY * mmPerPixel);
+                                                                onImagePropertyChange(key, 'height', Math.round(newHeight));
+                                                            }
+                                                        };
+                                                        
+                                                        const handleMouseUp = () => {
+                                                            if (parent) parent.setAttribute('draggable', 'true');
+                                                            document.removeEventListener('mousemove', handleMouseMove);
+                                                            document.removeEventListener('mouseup', handleMouseUp);
+                                                        };
+                                                        
+                                                        document.addEventListener('mousemove', handleMouseMove);
+                                                        document.addEventListener('mouseup', handleMouseUp);
+                                                    }}
+                                                    title="Drag to resize height"
+                                                />
+                                            </>
+                                        )}
+                                        
+                                        {/* Properties popup for selected image */}
+                                        {isSelected && onImagePropertyChange && (
+                                            <div
+                                                style={{
+                                                    position: 'absolute',
+                                                    top: '100%',
+                                                    left: '0',
+                                                    marginTop: '24px',
+                                                    background: 'white',
+                                                    borderRadius: '8px',
+                                                    boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
+                                                    border: '1px solid #e5e7eb',
+                                                    padding: '12px',
+                                                    zIndex: 50,
+                                                    color: '#374151',
+                                                    width: '180px',
+                                                    cursor: 'default'
+                                                }}
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                <div style={{ marginBottom: '10px' }}>
+                                                    <label style={{ fontSize: '11px', fontWeight: 'bold', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Width (mm)</label>
+                                                    <input
+                                                        type="number"
+                                                        value={img.width}
+                                                        onChange={(e) => onImagePropertyChange(key, 'width', parseInt(e.target.value) || 0)}
+                                                        style={{ width: '100%', padding: '4px 8px', fontSize: '13px', border: '1px solid #d1d5db', borderRadius: '4px' }}
+                                                    />
+                                                </div>
+                                                <div style={{ marginBottom: '10px' }}>
+                                                    <label style={{ fontSize: '11px', fontWeight: 'bold', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Height (mm)</label>
+                                                    <input
+                                                        type="number"
+                                                        value={img.height}
+                                                        onChange={(e) => onImagePropertyChange(key, 'height', parseInt(e.target.value) || 0)}
+                                                        style={{ width: '100%', padding: '4px 8px', fontSize: '13px', border: '1px solid #d1d5db', borderRadius: '4px' }}
+                                                    />
+                                                </div>
+                                                <div style={{ marginBottom: '10px' }}>
+                                                    <label style={{ fontSize: '11px', fontWeight: 'bold', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Page</label>
+                                                    <input
+                                                        type="number"
+                                                        min="1"
+                                                        value={img.page || 1}
+                                                        onChange={(e) => onImagePropertyChange(key, 'page', parseInt(e.target.value) || 1)}
+                                                        style={{ width: '100%', padding: '4px 8px', fontSize: '13px', border: '1px solid #d1d5db', borderRadius: '4px' }}
+                                                    />
+                                                </div>
+                                                <div style={{ fontSize: '10px', color: '#9ca3af', borderTop: '1px solid #e5e7eb', paddingTop: '8px', marginTop: '8px' }}>
+                                                    X: {Math.round(img.x)}mm | Y: {Math.round(img.y)}mm
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
                             })}
                         </div>
                     );

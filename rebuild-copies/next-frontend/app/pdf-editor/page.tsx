@@ -20,11 +20,22 @@ type FieldConfig = {
   align?: 'left' | 'center' | 'right';
 };
 
+type ImageConfig = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  page?: number;
+  dataUrl: string; // Base64 encoded image
+  name: string;
+};
+
 type TemplateConfig = {
   id?: number;
   key: string;
   name?: string;
   fields_config: Record<string, FieldConfig>;
+  images_config?: Record<string, ImageConfig>;
   file_path?: string;
   source_table?: string;
   data_source_type?: 'database' | 'csv' | 'erp';
@@ -277,6 +288,11 @@ export default function PdfEditorPage() {
   // Field selection for keyboard navigation and properties popup
   const [selectedFieldKey, setSelectedFieldKey] = useState<string | null>(null);
 
+  // Image/Signature upload state
+  const [uploadedImages, setUploadedImages] = useState<Record<string, ImageConfig>>({});
+  const [selectedImageKey, setSelectedImageKey] = useState<string | null>(null);
+  const imageInputRef = React.useRef<HTMLInputElement>(null);
+
   // Redirect if no valid mode
   useEffect(() => {
     if (!mode || (mode !== 'database' && mode !== 'csv' && mode !== 'erp')) {
@@ -286,13 +302,14 @@ export default function PdfEditorPage() {
     }
   }, [mode, router]);
 
-  // Keyboard navigation for selected field
+  // Keyboard navigation for selected field or image
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (selectedFieldKey === null) return;
+      // Check if we have a selected field or image
+      const hasSelectedField = selectedFieldKey !== null && template.fields_config && template.fields_config[selectedFieldKey];
+      const hasSelectedImage = selectedImageKey !== null && uploadedImages[selectedImageKey];
       
-      // Check if the field exists in the template
-      if (!template.fields_config || !template.fields_config[selectedFieldKey]) return;
+      if (!hasSelectedField && !hasSelectedImage) return;
 
       // Only handle arrow keys
       if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) return;
@@ -302,7 +319,7 @@ export default function PdfEditorPage() {
       // Convert pixels to mm (approximately 3.78 pixels per mm at 96 DPI)
       const pixelsPerMm = 3.78;
       const stepPixels = e.shiftKey ? 10 : 5; // 5px default, 10px with Shift
-      const step = stepPixels / pixelsPerMm; // Convert to mm for field positioning
+      const step = stepPixels / pixelsPerMm; // Convert to mm for positioning
       let dx = 0; 
       let dy = 0;
 
@@ -313,27 +330,47 @@ export default function PdfEditorPage() {
         case 'ArrowDown': dy = step; break;
       }
 
-      setTemplate(prev => {
-        const fieldConfig = prev.fields_config[selectedFieldKey];
-        if (!fieldConfig) return prev;
-        
-        return {
-          ...prev,
-          fields_config: {
-            ...prev.fields_config,
-            [selectedFieldKey]: {
-              ...fieldConfig,
-              x: Math.max(0, fieldConfig.x + dx),
-              y: Math.max(0, fieldConfig.y + dy)
+      // Move field if selected
+      if (hasSelectedField) {
+        setTemplate(prev => {
+          const fieldConfig = prev.fields_config[selectedFieldKey!];
+          if (!fieldConfig) return prev;
+          
+          return {
+            ...prev,
+            fields_config: {
+              ...prev.fields_config,
+              [selectedFieldKey!]: {
+                ...fieldConfig,
+                x: Math.max(0, fieldConfig.x + dx),
+                y: Math.max(0, fieldConfig.y + dy)
+              }
             }
-          }
-        };
-      });
+          };
+        });
+      }
+      
+      // Move image if selected
+      if (hasSelectedImage) {
+        setUploadedImages(prev => {
+          const imageConfig = prev[selectedImageKey!];
+          if (!imageConfig) return prev;
+          
+          return {
+            ...prev,
+            [selectedImageKey!]: {
+              ...imageConfig,
+              x: Math.max(0, parseFloat((imageConfig.x + dx).toFixed(1))),
+              y: Math.max(0, parseFloat((imageConfig.y + dy).toFixed(1)))
+            }
+          };
+        });
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedFieldKey, template.fields_config]);
+  }, [selectedFieldKey, template.fields_config, selectedImageKey, uploadedImages]);
 
   const fetchPdfDimensions = async (templateKey: string, retryCount = 0): Promise<any> => {
     if (!templateKey) return null;
@@ -559,6 +596,13 @@ export default function PdfEditorPage() {
           fields_config: data.fields_config || {} 
       });
       
+      // Load images_config into uploadedImages state
+      if (data.images_config && typeof data.images_config === 'object') {
+        setUploadedImages(data.images_config);
+      } else {
+        setUploadedImages({});
+      }
+      
       // If this template has CSV data, fetch it
       if (data.id && (!data.source_table || data.source_table === '')) {
         try {
@@ -640,7 +684,7 @@ export default function PdfEditorPage() {
       const templateData = await getRes.json();
       const templateId = templateData.id;
       
-      // Now update with our data
+      // Now update with our data (including images)
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pdf-templates/${template.key}`, {
         method: 'PUT',
         headers: {
@@ -651,6 +695,7 @@ export default function PdfEditorPage() {
         },
         body: JSON.stringify({ 
             fields_config: template.fields_config,
+            images_config: uploadedImages, // Include images
             file_path: template.file_path,
             name: template.name || template.key,
             source_table: template.source_table
@@ -734,6 +779,7 @@ export default function PdfEditorPage() {
           if (res.ok) {
               showNotif('Template deleted successfully! ✅', 'success');
               setTemplate({ key: '', fields_config: {} });
+              setUploadedImages({});
               setPreviewUrl(null);
               setPreviewError(null);
               fetchProfiles(); // Refresh list
@@ -986,6 +1032,117 @@ export default function PdfEditorPage() {
     });
     
     showNotif(`Field "${fieldName}" added to PDF`, 'success', 2000);
+  };
+
+  // Handle image upload for signatures/stamps
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      showNotif('Please upload an image file (PNG, JPG, etc.)', 'error');
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      showNotif('Image size must be less than 2MB', 'error');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const dataUrl = event.target?.result as string;
+      
+      // Create image to get dimensions
+      const img = new Image();
+      img.onload = () => {
+        // Scale down if too large (max 150px width for signatures)
+        let width = img.width;
+        let height = img.height;
+        const maxWidth = 150;
+        
+        if (width > maxWidth) {
+          const ratio = maxWidth / width;
+          width = maxWidth;
+          height = Math.round(height * ratio);
+        }
+
+        // Convert to mm (approximately 3.78 pixels per mm)
+        const widthMm = Math.round(width / 3.78);
+        const heightMm = Math.round(height / 3.78);
+
+        // Generate unique key
+        const baseName = file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9]/g, '_');
+        let imageKey = baseName;
+        let counter = 1;
+        while (uploadedImages[imageKey]) {
+          imageKey = `${baseName}_${counter}`;
+          counter++;
+        }
+
+        const newImage: ImageConfig = {
+          x: 100, // Center of page approximately
+          y: 200,
+          width: widthMm,
+          height: heightMm,
+          page: 1,
+          dataUrl: dataUrl,
+          name: file.name
+        };
+
+        setUploadedImages(prev => ({
+          ...prev,
+          [imageKey]: newImage
+        }));
+
+        showNotif(`Image "${file.name}" uploaded! Drag it onto the PDF to position.`, 'success');
+      };
+      img.src = dataUrl;
+    };
+    reader.readAsDataURL(file);
+
+    // Reset input
+    if (imageInputRef.current) {
+      imageInputRef.current.value = '';
+    }
+  };
+
+  // Handle image position update
+  const handleImagePositionUpdate = (imageKey: string, x: number, y: number) => {
+    setUploadedImages(prev => ({
+      ...prev,
+      [imageKey]: {
+        ...prev[imageKey],
+        x,
+        y
+      }
+    }));
+  };
+
+  // Handle image property change (width, height, page)
+  const handleImagePropertyChange = (imageKey: string, property: keyof ImageConfig, value: number | string) => {
+    setUploadedImages(prev => ({
+      ...prev,
+      [imageKey]: {
+        ...prev[imageKey],
+        [property]: value
+      }
+    }));
+  };
+
+  // Handle image removal
+  const handleRemoveImage = (imageKey: string) => {
+    setUploadedImages(prev => {
+      const newImages = { ...prev };
+      delete newImages[imageKey];
+      return newImages;
+    });
+    if (selectedImageKey === imageKey) {
+      setSelectedImageKey(null);
+    }
+    showNotif('Image removed', 'info');
   };
   
   const handleRenameField = (oldName: string, newName: string) => {
@@ -1483,6 +1640,7 @@ export default function PdfEditorPage() {
                           onChange={(e) => {
                             if (e.target.value === '') {
                               setTemplate({ key: '', fields_config: {}, name: '' });
+                              setUploadedImages({});
                             } else {
                               loadProfile(e.target.value);
                             }
@@ -1590,6 +1748,7 @@ export default function PdfEditorPage() {
                                name: '',
                                fields_config: {}
                            }));
+                           setUploadedImages({});
                            setPreviewUrl(null);
                            setPreviewError(null);
                       } else {
@@ -1668,6 +1827,70 @@ export default function PdfEditorPage() {
                     </svg>
                     Upload your PDF template file. After upload, click Preview to view it
                   </p>
+                </div>
+
+                {/* Image/Signature Upload */}
+                <div className="mb-4 p-4 border-2 border-dashed border-emerald-300 dark:border-emerald-700 rounded-xl bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-gray-900 dark:to-gray-900 transition-colors duration-300">
+                  <label htmlFor="image-upload" className="flex items-center gap-2 text-sm font-bold text-emerald-900 dark:text-white mb-3 transition-colors duration-300">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    Add Image / E-Signature
+                  </label>
+                  <input 
+                    ref={imageInputRef}
+                    id="image-upload"
+                    name="imageUpload"
+                    type="file" 
+                    accept="image/png,image/jpeg,image/jpg,image/gif"
+                    onChange={handleImageUpload}
+                    className="w-full text-sm text-gray-700 dark:text-gray-300 file:mr-4 file:py-2.5 file:px-5 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-gradient-to-r file:from-emerald-600 file:to-teal-600 file:text-white hover:file:from-emerald-700 hover:file:to-teal-700 file:transition-all file:duration-200 file:shadow-md hover:file:shadow-lg cursor-pointer"
+                  />
+                  <p className="text-xs text-emerald-700 dark:text-gray-300 mt-3 flex items-center gap-1 transition-colors duration-300">
+                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"/>
+                    </svg>
+                    Upload PNG/JPG images for signatures, stamps, or logos (max 2MB)
+                  </p>
+
+                  {/* Uploaded Images List */}
+                  {Object.keys(uploadedImages).length > 0 && (
+                    <div className="mt-4 space-y-2">
+                      <p className="text-xs font-semibold text-emerald-800 dark:text-emerald-200">Uploaded Images:</p>
+                      {Object.entries(uploadedImages).map(([key, img]) => (
+                        <div 
+                          key={key}
+                          className={`flex items-center gap-3 p-2 rounded-lg border-2 transition-all cursor-pointer ${
+                            selectedImageKey === key 
+                              ? 'border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20' 
+                              : 'border-emerald-200 dark:border-emerald-800 bg-white dark:bg-gray-800 hover:border-emerald-400'
+                          }`}
+                          onClick={() => setSelectedImageKey(key)}
+                        >
+                          <img 
+                            src={img.dataUrl} 
+                            alt={img.name}
+                            className="w-10 h-10 object-contain rounded border border-gray-200"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">{img.name}</p>
+                            <p className="text-xs text-gray-500">
+                              {img.width}×{img.height}mm | Page {img.page}
+                            </p>
+                          </div>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleRemoveImage(key); }}
+                            className="p-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-colors"
+                            title="Remove image"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -2007,7 +2230,7 @@ export default function PdfEditorPage() {
                         )}
                     </div>
                 ) : previewUrl ? (
-                    <div className="max-w-full" onClick={() => setSelectedFieldKey(null)}>
+                    <div className="max-w-full" onClick={() => { setSelectedFieldKey(null); setSelectedImageKey(null); }}>
                       <PDFViewer 
                         url={previewUrl} 
                         template={template} 
@@ -2019,6 +2242,12 @@ export default function PdfEditorPage() {
                         selectedFieldKey={selectedFieldKey}
                         onSelectField={setSelectedFieldKey}
                         onRemoveField={handleRemoveField}
+                        images={uploadedImages}
+                        onImagePositionUpdate={handleImagePositionUpdate}
+                        onImagePropertyChange={handleImagePropertyChange}
+                        onRemoveImage={handleRemoveImage}
+                        selectedImageKey={selectedImageKey}
+                        onSelectImage={setSelectedImageKey}
                       />
                     </div>
                 ) : (

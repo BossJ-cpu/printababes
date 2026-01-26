@@ -18,7 +18,33 @@ type PlacedField = {
   page: number;
   width?: number;
   wrapText?: boolean;
+  align?: 'left' | 'center' | 'right';
 };
+
+// Alignment Icon Components (Microsoft Word style)
+const AlignLeftIcon = ({ active }: { active: boolean }) => (
+  <svg width="16" height="16" viewBox="0 0 16 16" style={{ color: active ? '#2563eb' : '#9ca3af' }}>
+    <line x1="2" y1="3" x2="14" y2="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+    <line x1="2" y1="8" x2="10" y2="8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+    <line x1="2" y1="13" x2="12" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+  </svg>
+);
+
+const AlignCenterIcon = ({ active }: { active: boolean }) => (
+  <svg width="16" height="16" viewBox="0 0 16 16" style={{ color: active ? '#2563eb' : '#9ca3af' }}>
+    <line x1="2" y1="3" x2="14" y2="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+    <line x1="4" y1="8" x2="12" y2="8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+    <line x1="3" y1="13" x2="13" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+  </svg>
+);
+
+const AlignRightIcon = ({ active }: { active: boolean }) => (
+  <svg width="16" height="16" viewBox="0 0 16 16" style={{ color: active ? '#2563eb' : '#9ca3af' }}>
+    <line x1="2" y1="3" x2="14" y2="3" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+    <line x1="6" y1="8" x2="14" y2="8" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+    <line x1="4" y1="13" x2="14" y2="13" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+  </svg>
+);
 
 export default function ErpTemplateEditorPage() {
   const router = useRouter();
@@ -279,8 +305,9 @@ export default function ErpTemplateEditorPage() {
         x,
         y,
         page: currentPage,
-        width: 100, // Default width
-        wrapText: false // Default wrap
+        width: undefined, // Default: Auto
+        wrapText: false, // Default wrap
+        align: 'left' as const // Default alignment
       };
       
       filteredFields.push(newField);
@@ -591,43 +618,109 @@ export default function ErpTemplateEditorPage() {
               >
                 <canvas ref={canvasRef} />
                 
-                {/* Placed Fields */}
+                {/* Placed Fields - Matching PDF Editor Style */}
                 {placedFields.map((field, index) => {
                   const isSelected = selectedFieldIndex === index;
+                  const hasWidth = field.width && field.width > 0;
+                  const alignment = field.align || 'left';
+                  
+                  // Calculate transform based on alignment
+                  let transformX = '0';
+                  if (hasWidth) {
+                    if (alignment === 'center') {
+                      transformX = '-50%';
+                    } else if (alignment === 'right') {
+                      transformX = '-100%';
+                    }
+                  }
+                  
                   return (
-                    <div
-                      key={`${field.fieldname}-${index}`}
-                      draggable
-                      onDragStart={(e) => handlePlacedFieldDragStart(e, index)}
-                      onClick={(e) => { e.stopPropagation(); setSelectedFieldIndex(index); }}
-                      className={`absolute px-3 py-1.5 bg-blue-600/90 text-white text-xs font-semibold rounded-md cursor-move select-none shadow-md hover:bg-blue-600 hover:shadow-lg transition-all flex items-center ${
-                        isSelected ? 'ring-4 ring-yellow-400 z-30' : 'z-10'
-                      } ${!field.wrapText ? 'whitespace-nowrap' : ''}`}
-                      style={{ 
-                        left: field.x, 
-                        top: field.y,
-                        width: field.width && field.width > 0 ? `${field.width}px` : 'auto'
-                      }}
-                    >
-                      <span className="flex-1 truncate">{field.label}</span>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); removeField(index); }}
-                        className="ml-2 opacity-60 hover:opacity-100 w-4 h-4 bg-black/20 rounded-full flex items-center justify-center text-[10px] leading-none hover:bg-black/40 transition-all shrink-0"
+                    <div key={`${field.fieldname}-${index}`}>
+                      {/* Field Marker - Using inline styles like PDF editor */}
+                      <div
+                        draggable
+                        onDragStart={(e) => handlePlacedFieldDragStart(e, index)}
+                        onClick={(e) => { e.stopPropagation(); setSelectedFieldIndex(index); }}
+                        style={{
+                          position: 'absolute',
+                          backgroundColor: 'rgba(37, 99, 235, 0.9)',
+                          color: 'white',
+                          fontSize: '12px',
+                          lineHeight: '1.3',
+                          fontWeight: '600',
+                          padding: '6px 12px',
+                          left: field.x,
+                          top: field.y,
+                          cursor: 'move',
+                          borderRadius: '6px',
+                          userSelect: 'none',
+                          zIndex: isSelected ? 30 : 10,
+                          boxShadow: '0 4px 6px rgba(0,0,0,0.15)',
+                          transform: `translate(${transformX}, 0)`,
+                          display: 'flex',
+                          flexDirection: hasWidth && field.wrapText ? 'column' : 'row',
+                          alignItems: hasWidth && field.wrapText ? 'stretch' : 'center',
+                          textAlign: alignment,
+                          whiteSpace: field.wrapText ? 'normal' : 'nowrap',
+                          wordBreak: field.wrapText ? 'break-all' : 'normal',
+                          width: hasWidth ? `${field.width}px` : 'auto',
+                          outline: isSelected ? '4px solid #facc15' : 'none'
+                        }}
                       >
-                        ×
-                      </button>
-
-                      {/* Properties Popup */}
-                      {isSelected && (
-                        <div 
-                          className="absolute top-full left-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-200 p-3 z-50 text-gray-800 w-48 cursor-default"
-                          onMouseDown={(e) => e.stopPropagation()} 
-                          onClick={(e) => e.stopPropagation()}
-                          draggable={false}
+                        <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>{field.label}</span>
+                        {/* Remove button */}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); removeField(index); }}
+                          style={{
+                            marginLeft: hasWidth && field.wrapText ? '0' : '8px',
+                            marginTop: hasWidth && field.wrapText ? '4px' : '0',
+                            alignSelf: hasWidth && field.wrapText ? 'flex-end' : 'auto',
+                            opacity: 0.6,
+                            width: '16px',
+                            height: '16px',
+                            background: 'rgba(0,0,0,0.2)',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '10px',
+                            lineHeight: 1,
+                            border: 'none',
+                            cursor: 'pointer',
+                            color: 'inherit',
+                            flexShrink: 0
+                          }}
+                          onMouseOver={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.background = 'rgba(0,0,0,0.4)'; }}
+                          onMouseOut={(e) => { e.currentTarget.style.opacity = '0.6'; e.currentTarget.style.background = 'rgba(0,0,0,0.2)'; }}
                         >
-                          <div className="space-y-3">
-                            <div>
-                              <label className="text-xs font-bold text-gray-500 block mb-1">Width (px)</label>
+                          ×
+                        </button>
+
+                        {/* Properties Popup - Matching PDF Editor */}
+                        {isSelected && (
+                          <div 
+                            style={{
+                              position: 'absolute',
+                              top: '100%',
+                              left: '0',
+                              marginTop: '8px',
+                              background: 'white',
+                              borderRadius: '8px',
+                              boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
+                              border: '1px solid #e5e7eb',
+                              padding: '12px',
+                              zIndex: 50,
+                              color: '#374151',
+                              width: '192px',
+                              cursor: 'default'
+                            }}
+                            onMouseDown={(e) => e.stopPropagation()} 
+                            onClick={(e) => e.stopPropagation()}
+                            draggable={false}
+                          >
+                            {/* Width Input */}
+                            <div style={{ marginBottom: '12px' }}>
+                              <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Width (px)</label>
                               <input 
                                 type="number" 
                                 value={field.width || ''}
@@ -640,11 +733,22 @@ export default function ErpTemplateEditorPage() {
                                     return newFields;
                                   });
                                 }}
-                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:border-blue-500 focus:outline-none"
+                                style={{
+                                  width: '100%',
+                                  padding: '4px 8px',
+                                  fontSize: '14px',
+                                  border: '1px solid #d1d5db',
+                                  borderRadius: '4px',
+                                  outline: 'none'
+                                }}
+                                onFocus={(e) => e.currentTarget.style.borderColor = '#3b82f6'}
+                                onBlur={(e) => e.currentTarget.style.borderColor = '#d1d5db'}
                               />
                             </div>
-                            <div className="flex items-center justify-between">
-                              <label className="text-xs font-bold text-gray-500">Wrap Text</label>
+                            
+                            {/* Wrap Text Checkbox */}
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                              <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#6b7280' }}>Wrap Text</label>
                               <input 
                                 type="checkbox" 
                                 checked={field.wrapText || false}
@@ -656,19 +760,188 @@ export default function ErpTemplateEditorPage() {
                                     return newFields;
                                   });
                                 }}
-                                className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 cursor-pointer"
+                                style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#2563eb' }}
                               />
                             </div>
-                            <div className="text-[10px] text-gray-400 pt-2 border-t mt-2 flex justify-between">
+                            
+                            {/* Alignment Icons */}
+                            <div style={{ marginBottom: '12px' }}>
+                              <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#6b7280', display: 'block', marginBottom: '6px' }}>Alignment</label>
+                              <div style={{ 
+                                display: 'flex', 
+                                gap: '2px', 
+                                background: '#f3f4f6', 
+                                borderRadius: '6px', 
+                                padding: '4px' 
+                              }}>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setPlacedFields(prev => {
+                                      const newFields = [...prev];
+                                      newFields[index] = { ...newFields[index], align: 'left' };
+                                      return newFields;
+                                    });
+                                  }}
+                                  style={{
+                                    flex: 1,
+                                    padding: '6px',
+                                    borderRadius: '4px',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    background: alignment === 'left' ? 'white' : 'transparent',
+                                    boxShadow: alignment === 'left' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                                    transition: 'all 0.15s'
+                                  }}
+                                  title="Align Left"
+                                >
+                                  <AlignLeftIcon active={alignment === 'left'} />
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setPlacedFields(prev => {
+                                      const newFields = [...prev];
+                                      newFields[index] = { ...newFields[index], align: 'center' };
+                                      return newFields;
+                                    });
+                                  }}
+                                  style={{
+                                    flex: 1,
+                                    padding: '6px',
+                                    borderRadius: '4px',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    background: alignment === 'center' ? 'white' : 'transparent',
+                                    boxShadow: alignment === 'center' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                                    transition: 'all 0.15s'
+                                  }}
+                                  title="Align Center"
+                                >
+                                  <AlignCenterIcon active={alignment === 'center'} />
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setPlacedFields(prev => {
+                                      const newFields = [...prev];
+                                      newFields[index] = { ...newFields[index], align: 'right' };
+                                      return newFields;
+                                    });
+                                  }}
+                                  style={{
+                                    flex: 1,
+                                    padding: '6px',
+                                    borderRadius: '4px',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    background: alignment === 'right' ? 'white' : 'transparent',
+                                    boxShadow: alignment === 'right' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                                    transition: 'all 0.15s'
+                                  }}
+                                  title="Align Right"
+                                >
+                                  <AlignRightIcon active={alignment === 'right'} />
+                                </button>
+                              </div>
+                            </div>
+                            
+                            {/* Coordinates */}
+                            <div style={{ 
+                              fontSize: '10px', 
+                              color: '#9ca3af', 
+                              paddingTop: '8px', 
+                              marginTop: '12px', 
+                              borderTop: '1px solid #e5e7eb',
+                              display: 'flex',
+                              justifyContent: 'space-between'
+                            }}>
                               <span>X: {Math.round(field.x)}</span>
                               <span>Y: {Math.round(field.y)}</span>
                             </div>
+                            
+                            {/* Alignment position note */}
+                            {hasWidth && (
+                              <div style={{
+                                fontSize: '10px',
+                                color: '#3b82f6',
+                                marginTop: '8px',
+                                textAlign: 'center',
+                                padding: '4px',
+                                background: '#eff6ff',
+                                borderRadius: '4px'
+                              }}>
+                                ↔ {alignment === 'left' ? 'Starts' : alignment === 'center' ? 'Centered' : 'Ends'} at X:{Math.round(field.x)}
+                              </div>
+                            )}
+                            
+                            {/* Triangle Indicator */}
+                            <div style={{
+                              position: 'absolute',
+                              top: '-6px',
+                              left: '16px',
+                              width: '12px',
+                              height: '12px',
+                              background: 'white',
+                              borderTop: '1px solid #e5e7eb',
+                              borderLeft: '1px solid #e5e7eb',
+                              transform: 'rotate(45deg)'
+                            }} />
                           </div>
-                          
-                          {/* Triangle Indicator */}
-                          <div className="absolute -top-1.5 left-4 w-3 h-3 bg-white border-t border-l border-gray-200 transform rotate-45"></div>
-                        </div>
-                      )}
+                        )}
+                        
+                        {/* Width indicator line with alignment marker */}
+                        {hasWidth && (
+                          <div style={{
+                            position: 'absolute',
+                            bottom: '-8px',
+                            left: '0',
+                            right: '0',
+                            height: '2px',
+                            background: '#facc15',
+                            pointerEvents: 'none'
+                          }}>
+                            {/* Left edge marker */}
+                            <div style={{
+                              position: 'absolute',
+                              left: '0',
+                              top: '-4px',
+                              width: '2px',
+                              height: '10px',
+                              background: '#facc15'
+                            }} />
+                            {/* Right edge marker */}
+                            <div style={{
+                              position: 'absolute',
+                              right: '0',
+                              top: '-4px',
+                              width: '2px',
+                              height: '10px',
+                              background: '#facc15'
+                            }} />
+                            {/* Alignment anchor marker (red) */}
+                            <div style={{
+                              position: 'absolute',
+                              left: alignment === 'left' ? '0' : alignment === 'center' ? '50%' : '100%',
+                              transform: alignment === 'center' ? 'translateX(-50%)' : alignment === 'right' ? 'translateX(-100%)' : 'none',
+                              top: '-6px',
+                              width: '4px',
+                              height: '14px',
+                              background: '#ef4444',
+                              borderRadius: '2px'
+                            }} />
+                          </div>
+                        )}
+                      </div>
                     </div>
                   );
                 })}

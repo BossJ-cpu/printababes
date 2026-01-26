@@ -157,9 +157,8 @@ class ErpController extends Controller
                         $x = $config['x'] ?? 10;
                         $y = $config['y'] ?? 10;
                         $fontSize = $config['size'] ?? 12;
-                        // Width is stored in pixels, convert to mm (approximately 3.78 pixels per mm at 96 DPI)
-                        $widthPx = $config['width'] ?? 0;
-                        $width = $widthPx > 0 ? $widthPx / 3.78 : 0;
+                        // Width is already stored in mm from saveTemplate
+                        $width = $config['width'] ?? 0;
                         $wrapText = $config['wrap_text'] ?? false;
                         // Get alignment (default to 'left')
                         $align = $config['align'] ?? 'left';
@@ -655,6 +654,7 @@ class ErpController extends Controller
                     'y' => round($y, 2),
                     'width' => round($width, 2),
                     'wrap_text' => $field['wrapText'] ?? false,
+                    'align' => $field['align'] ?? 'left',
                     'page' => $field['page'] ?? 1,
                     'font' => 'Arial',
                     'size' => 12,
@@ -789,9 +789,8 @@ class ErpController extends Controller
                     $x = $config['x'] ?? 10;
                     $y = $config['y'] ?? 10;
                     $fontSize = $config['size'] ?? 12;
-                    // Width is stored in pixels, convert to mm (approximately 3.78 pixels per mm at 96 DPI)
-                    $widthPx = $config['width'] ?? 0;
-                    $width = $widthPx > 0 ? $widthPx / 3.78 : 0;
+                    // Width is already stored in mm from saveTemplate
+                    $width = $config['width'] ?? 0;
                     $wrapText = $config['wrap_text'] ?? false;
                     // Get alignment (default to 'left')
                     $align = $config['align'] ?? 'left';

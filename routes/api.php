@@ -6,6 +6,7 @@ use App\Http\Controllers\SubmissionController;
 use App\Http\Controllers\PdfTemplateController;
 use App\Http\Controllers\CoordinateTestController;
 use App\Http\Controllers\DataImportController;
+use App\Http\Controllers\ErpController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -52,4 +53,26 @@ Route::put('/database/rows/{table}/{id}', [App\Http\Controllers\DatabaseManagerC
 Route::delete('/database/rows/{table}/{id}', [App\Http\Controllers\DatabaseManagerController::class, 'deleteRow']);
 
 // PDF Generation route (needs CORS support)
-Route::match(['get', 'head', 'options'], '/generate-submission-pdf/{id}/{templateKey?}', [SubmissionController::class, 'generatePdf']);
+Route::match(['get', 'head'], '/generate-submission-pdf/{id}/{templateKey?}', [SubmissionController::class, 'generatePdf']);
+
+// ERPNext Integration Routes
+Route::get('/erp/status', [ErpController::class, 'status']);
+Route::get('/erp/doctypes', [ErpController::class, 'getDocTypes']);
+Route::get('/erp/records/{doctype}', [ErpController::class, 'getRecords']);
+Route::get('/erp/records/{doctype}/{name}', [ErpController::class, 'getRecord']);
+Route::post('/erp/generate-pdfs', [ErpController::class, 'generatePdfs']);
+
+// ERP Reports (for template editor)
+Route::get('/erp/reports', [ErpController::class, 'getReports']);
+Route::get('/erp/report-columns', [ErpController::class, 'getReportColumns']);
+Route::get('/erp/report-data', [ErpController::class, 'getReportData']);
+Route::get('/erp/companies', [ErpController::class, 'getCompanies']);
+Route::get('/erp/templates', [ErpController::class, 'getTemplates']);
+Route::post('/erp/templates', [ErpController::class, 'saveTemplate']);
+Route::post('/erp/generate-pdf', [ErpController::class, 'generateSinglePdf']);
+
+// ERP Templates (reuse pdf-templates with doctype field)
+Route::get('erp-templates', [PdfTemplateController::class, 'indexErpTemplates']);
+Route::get('erp-templates/{key}', [PdfTemplateController::class, 'show']);
+Route::put('erp-templates/{key}', [PdfTemplateController::class, 'updateErpTemplate']);
+Route::post('erp-templates/{key}/upload', [PdfTemplateController::class, 'upload']);

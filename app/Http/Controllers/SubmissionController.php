@@ -3,9 +3,17 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Services\ErpService;
 
 class SubmissionController extends Controller
 {
+    protected $erp;
+
+    public function __construct(ErpService $erp)
+    {
+        $this->erp = $erp;
+    }
+
     public function index()
     {
         return \App\Models\Submission::all();
@@ -19,31 +27,36 @@ class SubmissionController extends Controller
             'age' => 'nullable|integer',
         ]);
 
-        return \App\Models\Submission::create($validated);
+        $submission = \App\Models\Submission::create($validated);
+
+        // Sync to ERP - Send to PRINTABLESTEST DocType
+        // Only send required field (title) and optional details
+        $this->erp->createGenericRecord('PRINTABLESTEST', [
+            'title' => $submission->name,
+            'details' => "Email: {$submission->email}, Age: {$submission->age}"
+        ]);
+
+        return $submission;
     }
 
     public function generatePdf($id, $templateKey = 'user_profile')
     {
-        // Add CORS headers immediately
-        header('Access-Control-Allow-Origin: *');
-        header('Access-Control-Allow-Methods: GET, HEAD, OPTIONS');
-        header('Access-Control-Allow-Headers: Content-Type, Authorization, Bypass-Tunnel-Reminder, ngrok-skip-browser-warning');
-        
-        // Handle OPTIONS preflight request
-        if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-            return response('', 200);
-        }
-        
+        $headers = [
+            'Access-Control-Allow-Origin' => '*',
+            'Access-Control-Allow-Methods' => 'GET, HEAD, OPTIONS',
+            'Access-Control-Allow-Headers' => 'Content-Type, Authorization, Bypass-Tunnel-Reminder, ngrok-skip-browser-warning',
+        ];
+
         $template = \App\Models\PdfTemplate::where('key', $templateKey)
             ->orWhere('name', $templateKey)
             ->first();
         
         if (!$template) {
-            return response()->json(['error' => "PDF Template '{$templateKey}' not found. Upload one at /pdf-editor"], 404);
+            return response()->json(['error' => "PDF Template '{$templateKey}' not found. Upload one at /pdf-editor"], 404)->withHeaders($headers);
         }
         
         if (!$template->file_path || !\Illuminate\Support\Facades\Storage::disk('public')->exists($template->file_path)) {
-            return response()->json(['error' => "PDF template file is missing. Please upload a PDF file for template '{$templateKey}' in the PDF Editor."], 404);
+            return response()->json(['error' => "PDF template file is missing. Please upload a PDF file for template '{$templateKey}' in the PDF Editor."], 404)->withHeaders($headers);
         }
 
         // Get the source table for this template
@@ -51,14 +64,17 @@ class SubmissionController extends Controller
         
         if (!$sourceTable) {
             // Fallback to old behavior - use submissions table
-            $record = \App\Models\Submission::findOrFail($id);
+            $record = \App\Models\Submission::find($id);
+            if (!$record) {
+                 return response()->json(['error' => "Submission #{$id} not found"], 404)->withHeaders($headers);
+            }
             $recordData = $record->toArray();
         } else {
             // Use the configured source table
             $record = \Illuminate\Support\Facades\DB::table($sourceTable)->find($id);
             
             if (!$record) {
-                return response()->json(['error' => "Record #{$id} not found in table '{$sourceTable}'"], 404);
+                return response()->json(['error' => "Record #{$id} not found in table '{$sourceTable}'"], 404)->withHeaders($headers);
             }
             
             $recordData = (array) $record;
@@ -67,9 +83,13 @@ class SubmissionController extends Controller
         $pdfPath = \Illuminate\Support\Facades\Storage::disk('public')->path($template->file_path);
         
         // Initialize FPDI with millimeters as unit (consistent with other controllers)
-        $pdf = new \setasign\Fpdi\Fpdi('P', 'mm');
-        $pdf->SetAutoPageBreak(false);
-        $pageCount = $pdf->setSourceFile($pdfPath);
+        try {
+            $pdf = new \setasign\Fpdi\Fpdi('P', 'mm');
+            $pdf->SetAutoPageBreak(false);
+            $pageCount = $pdf->setSourceFile($pdfPath);
+        } catch (\Exception $e) {
+             return response()->json(['error' => "Error loading PDF template: " . $e->getMessage()], 500)->withHeaders($headers);
+        }
 
         for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {
             $templateId = $pdf->importPage($pageNo);
@@ -114,10 +134,12 @@ class SubmissionController extends Controller
             }
         }
 
-        return response($pdf->Output('I', 'generated_'.$id.'.pdf'), 200)
+        // Use 'S' to return the document as a string so Laravel can handle headers
+        $pdfContent = $pdf->Output('S');
+
+        return response($pdfContent, 200)
             ->header('Content-Type', 'application/pdf')
-            ->header('Access-Control-Allow-Origin', '*')
-            ->header('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS')
-            ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Bypass-Tunnel-Reminder, ngrok-skip-browser-warning');
+            ->header('Content-Disposition', 'inline; filename="generated_'.$id.'.pdf"')
+            ->withHeaders($headers);
     }
 }

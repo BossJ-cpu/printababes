@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    'erp' => [
+        'base_url' => env('ERP_BASE_URL'),
+        'key' => env('ERP_API_KEY'),
+        'secret' => env('ERP_API_SECRET'),
+    ],
+
 ];

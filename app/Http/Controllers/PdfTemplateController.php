@@ -452,15 +452,26 @@ class PdfTemplateController extends Controller
                             $x = floatval($config['x'] ?? 0);
                             $y = floatval($config['y'] ?? 0);
                             $fontSize = floatval($config['size'] ?? 12);
+                            $wrapText = $config['wrap_text'] ?? false;
+                            // Width is stored in pixels, convert to mm (approximately 3.78 pixels per mm at 96 DPI)
+                            $widthPx = floatval($config['width'] ?? 0);
+                            $widthMm = $widthPx > 0 ? $widthPx / 3.78 : 0;
                             
                             $pdf->SetFontSize($fontSize);
                             
-                            // Center text vertically
-                            $adjustedY = $y + ($fontSize * 0.25);
-                            $textWidth = $pdf->GetStringWidth($value);
-                            $centeredX = $x - ($textWidth / 2);
-                            
-                            $pdf->Text($centeredX, $adjustedY, $value);
+                            // Check if wrap text is enabled and width is set
+                            if ($wrapText && $widthMm > 0) {
+                                // Use MultiCell for text wrapping
+                                $pdf->SetXY($x, $y);
+                                $lineHeight = $fontSize * 0.4; // Line height in mm
+                                $pdf->MultiCell($widthMm, $lineHeight, $value, 0, 'L');
+                            } else {
+                                // Standard single-line text
+                                $adjustedY = $y + ($fontSize * 0.25);
+                                $textWidth = $pdf->GetStringWidth($value);
+                                $centeredX = $x - ($textWidth / 2);
+                                $pdf->Text($centeredX, $adjustedY, $value);
+                            }
                         }
                     }
                 }
@@ -531,7 +542,22 @@ class PdfTemplateController extends Controller
 
             $fullPath = storage_path('app/public/' . $filePath);
             
-            return response()->download($fullPath, "record_{$index}.pdf", [
+            // Determine filename based on template name
+            $downloadName = "record_{$index}.pdf"; // Default fallback
+            
+            // Try to extract template key and get name
+            // Session ID format: bulk_{key}_{timestamp}
+            if (preg_match('/^bulk_(.+)_\d+$/', $sessionId, $matches)) {
+                 $key = $matches[1];
+                 $template = PdfTemplate::where('key', $key)->first();
+                 if ($template && $template->name) {
+                     // Sanitize name for filename
+                     $safeName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $template->name);
+                     $downloadName = "{$safeName}_no.{$index}.pdf";
+                 }
+            }
+
+            return response()->download($fullPath, $downloadName, [
                 'Content-Type' => 'application/pdf',
                 'Access-Control-Allow-Origin' => '*'
             ]);
@@ -562,12 +588,30 @@ class PdfTemplateController extends Controller
             $zipPath = storage_path('app/public/generated/' . $zipFileName);
             
             $zip = new \ZipArchive();
+
+            // Determine naming scheme for zip entries
+            $templateName = null;
+            if (preg_match('/^bulk_(.+)_\d+$/', $sessionId, $matches)) {
+                 $key = $matches[1];
+                 $template = PdfTemplate::where('key', $key)->first();
+                 if ($template && $template->name) {
+                     $templateName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $template->name);
+                 }
+            }
             
             if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) === TRUE) {
                 foreach ($files as $file) {
                     $fullPath = storage_path('app/public/' . $file);
                     $fileName = basename($file);
-                    $zip->addFile($fullPath, $fileName);
+                    
+                    // Rename entry if template name exists
+                    $entryName = $fileName;
+                    if ($templateName && preg_match('/^record_(\d+)\.pdf$/', $fileName, $fMatches)) {
+                        $idx = $fMatches[1];
+                        $entryName = "{$templateName}_no.{$idx}.pdf";
+                    }
+
+                    $zip->addFile($fullPath, $entryName);
                 }
                 $zip->close();
             } else {
@@ -583,5 +627,45 @@ class PdfTemplateController extends Controller
             \Illuminate\Support\Facades\Log::error('ZIP download error: ' . $e->getMessage());
             return response()->json(['error' => 'ZIP creation failed: ' . $e->getMessage()], 500);
         }
+    }
+
+    /**
+     * Get templates that have a doctype field (ERP templates)
+     */
+    public function indexErpTemplates()
+    {
+        return PdfTemplate::whereNotNull('doctype')
+            ->where('doctype', '!=', '')
+            ->get(['id', 'key', 'name', 'file_path', 'doctype', 'fields_config']);
+    }
+
+    /**
+     * Update or create an ERP template
+     */
+    public function updateErpTemplate(Request $request, $key)
+    {
+        $template = PdfTemplate::firstOrCreate(['key' => $key]);
+        
+        $data = [];
+        
+        if ($request->has('fields_config')) {
+            $data['fields_config'] = $request->input('fields_config');
+        }
+        
+        if ($request->has('file_path')) {
+            $data['file_path'] = $request->input('file_path');
+        }
+
+        if ($request->has('name')) {
+            $data['name'] = $request->input('name');
+        }
+
+        if ($request->has('doctype')) {
+            $data['doctype'] = $request->input('doctype');
+        }
+
+        $template->update($data);
+
+        return $template;
     }
 }

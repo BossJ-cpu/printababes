@@ -9,6 +9,8 @@ type FieldConfig = {
   x: number;
   y: number;
   page?: number;
+  width?: number;
+  wrap_text?: boolean;
 };
 
 type TemplateConfig = {
@@ -20,16 +22,22 @@ interface PDFViewerProps {
     template: TemplateConfig | null;
     onAddField?: (x: number, y: number, page: number) => void;
     onUpdateField?: (fieldKey: string, x: number, y: number) => void;
+    onDropField?: (fieldName: string, x: number, y: number, page: number) => void;
+    onFieldPropertyChange?: (fieldKey: string, property: string, value: number | boolean) => void;
     coordinateTestMode?: boolean;
     onCoordinateTest?: (x: number, y: number, page: number) => void;
     backendDimensions?: Record<number, {width: number, height: number, orientation: string}>;
+    selectedFieldKey?: string | null;
+    onSelectField?: (fieldKey: string | null) => void;
+    onRemoveField?: (fieldKey: string) => void;
 }
 
-export default function PDFViewer({ url, template, onAddField, onUpdateField, coordinateTestMode, onCoordinateTest, backendDimensions }: PDFViewerProps) {
+export default function PDFViewer({ url, template, onAddField, onUpdateField, onDropField, onFieldPropertyChange, coordinateTestMode, onCoordinateTest, backendDimensions, selectedFieldKey, onSelectField, onRemoveField }: PDFViewerProps) {
     const [numPages, setNumPages] = useState<number>(0);
     const [pageDims, setPageDims] = useState<Record<number, {width: number, height: number}>>({});
     const [hoverCoords, setHoverCoords] = useState<{x: number, y: number} | null>(null);
     const [clickState, setClickState] = useState<{shouldPreventClick: boolean; timeStamp: number}>({shouldPreventClick: false, timeStamp: 0});
+    const [isDragOver, setIsDragOver] = useState(false);
     
     // Dragging state
     const [dragState, setDragState] = useState<{
@@ -77,6 +85,8 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
             }
         }));
     };
+
+
 
     const getCoordinates = (e: React.MouseEvent<HTMLDivElement>, pageNumber: number) => {
         const rect = e.currentTarget.getBoundingClientRect();
@@ -262,11 +272,48 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
                                 cursor: 'crosshair', 
                                 marginBottom: '1rem',
                                 width: 'fit-content',
-                                margin: '0 auto 1rem auto'
+                                margin: '0 auto 1rem auto',
+                                scrollSnapAlign: 'start',
+                                scrollSnapStop: 'always',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                overflow: 'hidden',
+                                border: isDragOver ? '3px dashed #3b82f6' : 'none',
+                                transition: 'border 0.2s ease'
                             }}
                             onMouseMove={(e) => handleMouseMove(e, pageNumber)} 
                             onMouseLeave={() => setHoverCoords(null)}
                             onClick={(e) => handlePageClick(e, pageNumber)}
+                            onDragOver={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setIsDragOver(true);
+                            }}
+                            onDragLeave={(e) => {
+                                e.preventDefault();
+                                setIsDragOver(false);
+                            }}
+                            onDrop={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setIsDragOver(false);
+                                
+                                const fieldName = e.dataTransfer.getData('fieldName');
+                                if (!fieldName || !onDropField) return;
+                                
+                                // Calculate coordinates
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                const clickX = e.clientX - rect.left;
+                                const clickY = e.clientY - rect.top;
+                                const actualRenderWidth = rect.width;
+                                const actualRenderHeight = rect.height;
+                                
+                                const mmX = (clickX / actualRenderWidth) * dims.width;
+                                const mmY = (clickY / actualRenderHeight) * dims.height;
+                                
+                                onDropField(fieldName, parseFloat(mmX.toFixed(1)), parseFloat(mmY.toFixed(1)), pageNumber);
+                            }}
                             onContextMenu={(e) => {
                                 e.preventDefault();
                                 // Right-click to show page dimensions and help debug
@@ -317,90 +364,165 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
                                 // Calculate position using utility function for consistency
                                 const { leftPercent, topPercent } = calculateFieldPosition(conf.x, conf.y, fieldDims);
                                 
+                                // Check if this field is selected
+                                const isSelected = selectedFieldKey === key;
+                                const isBeingDragged = dragState.fieldKey === key;
+                                
                                 return (
                                 <div key={key}>
-                                    {/* Draggable Field Label */}
+                                    {/* Draggable Field Label - ERP Style */}
                                     <div
                                         style={{
                                             position: 'absolute',
-                                            border: '2px solid #ef4444',
-                                            backgroundColor: dragState.fieldKey === key ? 'rgba(239, 68, 68, 0.3)' : 'rgba(239, 68, 68, 0.1)',
-                                            color: '#dc2626',
-                                            fontSize: '11px',
-                                            lineHeight: '1.2',
-                                            fontWeight: 'bold',
-                                            padding: '2px 4px',
+                                            backgroundColor: 'rgba(37, 99, 235, 0.9)', // blue-600/90
+                                            color: 'white',
+                                            fontSize: '12px',
+                                            lineHeight: '1',
+                                            fontWeight: '600',
+                                            padding: '6px 12px',
                                             left: `${leftPercent}%`,
                                             top: `${topPercent}%`,
-                                            cursor: dragState.isDragging && dragState.fieldKey === key ? 'grabbing' : 'grab',
-                                            borderRadius: '3px',
-                                            minWidth: '60px',
-                                            textAlign: 'center',
+                                            cursor: dragState.isDragging && isBeingDragged ? 'grabbing' : 'move',
+                                            borderRadius: '6px',
                                             userSelect: 'none',
-                                            zIndex: 1001,
-                                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                                            transform: 'translate(0, -100%)'
+                                            zIndex: isSelected ? 30 : 10,
+                                            boxShadow: '0 4px 6px rgba(0,0,0,0.15)',
+                                            transform: 'translate(0, -100%)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            whiteSpace: conf.wrap_text ? 'normal' : 'nowrap',
+                                            wordBreak: conf.wrap_text ? 'break-all' : 'normal',
+                                            width: conf.width && conf.width > 0 ? `${conf.width}px` : 'auto',
+                                            outline: isSelected ? '4px solid #facc15' : 'none' // yellow-400 ring
                                         }}
                                         onMouseDown={(e) => handleFieldMouseDown(e, key, conf)}
-                                        onClick={(e) => e.stopPropagation()}
-                                        title={`Drag to reposition ${key}`}
+                                        onClick={(e) => { 
+                                          e.stopPropagation(); 
+                                          if (onSelectField) onSelectField(key);
+                                        }}
+                                        onMouseOver={(e) => {
+                                          if (!isBeingDragged) {
+                                            e.currentTarget.style.backgroundColor = 'rgba(37, 99, 235, 1)';
+                                            e.currentTarget.style.boxShadow = '0 6px 12px rgba(0,0,0,0.2)';
+                                          }
+                                        }}
+                                        onMouseOut={(e) => {
+                                          e.currentTarget.style.backgroundColor = 'rgba(37, 99, 235, 0.9)';
+                                          e.currentTarget.style.boxShadow = '0 4px 6px rgba(0,0,0,0.15)';
+                                        }}
+                                        title={isSelected ? `Selected: ${key} (use arrow keys to move)` : `Click to select, drag to reposition ${key}`}
                                     >
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-                                            <span>📍</span>
-                                            <span>{key}</span>
-                                        </div>
-                                        <div style={{ 
-                                            fontSize: '9px', 
-                                            fontWeight: 'normal',
-                                            color: 'rgba(239, 68, 68, 0.8)',
-                                            marginTop: '1px'
-                                        }}>
-                                            {conf.x.toFixed(1)}, {conf.y.toFixed(1)}mm
-                                        </div>
-                                    </div>
-                                    
-                                    {/* Precision Crosshair Marker */}
-                                    <div style={{
-                                        position: 'absolute',
-                                        left: `${leftPercent}%`,
-                                        top: `${topPercent}%`,
-                                        width: '16px',
-                                        height: '16px',
-                                        transform: 'translate(-50%, -50%)',
-                                        zIndex: 1000,
-                                        pointerEvents: 'none'
-                                    }}>
-                                        {/* Vertical line */}
-                                        <div style={{
-                                            position: 'absolute',
-                                            left: '50%',
-                                            top: '0',
-                                            width: '1px',
-                                            height: '100%',
-                                            backgroundColor: dragState.fieldKey === key ? '#dc2626' : '#ef4444',
-                                            transform: 'translateX(-50%)'
-                                        }} />
-                                        {/* Horizontal line */}
-                                        <div style={{
-                                            position: 'absolute',
-                                            left: '0',
-                                            top: '50%',
-                                            width: '100%',
-                                            height: '1px',
-                                            backgroundColor: dragState.fieldKey === key ? '#dc2626' : '#ef4444',
-                                            transform: 'translateY(-50%)'
-                                        }} />
-                                        {/* Center dot */}
-                                        <div style={{
-                                            position: 'absolute',
-                                            left: '50%',
-                                            top: '50%',
-                                            width: '3px',
-                                            height: '3px',
-                                            backgroundColor: dragState.fieldKey === key ? '#dc2626' : '#ef4444',
-                                            borderRadius: '50%',
-                                            transform: 'translate(-50%, -50%)'
-                                        }} />
+                                        <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>{key}</span>
+                                        {/* Remove button */}
+                                        {onRemoveField && (
+                                          <button
+                                            onClick={(e) => { e.stopPropagation(); onRemoveField(key); }}
+                                            style={{
+                                              marginLeft: '8px',
+                                              opacity: 0.6,
+                                              width: '16px',
+                                              height: '16px',
+                                              background: 'rgba(0,0,0,0.2)',
+                                              borderRadius: '50%',
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              justifyContent: 'center',
+                                              fontSize: '10px',
+                                              lineHeight: 1,
+                                              border: 'none',
+                                              cursor: 'pointer',
+                                              color: 'inherit',
+                                              flexShrink: 0
+                                            }}
+                                            onMouseOver={(e) => (e.currentTarget.style.opacity = '1', e.currentTarget.style.background = 'rgba(0,0,0,0.4)')}
+                                            onMouseOut={(e) => (e.currentTarget.style.opacity = '0.6', e.currentTarget.style.background = 'rgba(0,0,0,0.2)')}
+                                            title={`Remove ${key}`}
+                                          >
+                                            ×
+                                          </button>
+                                        )}
+                                        
+                                        {/* Properties Popup (ERP editor style) */}
+                                        {isSelected && onFieldPropertyChange && (
+                                          <div 
+                                            style={{
+                                              position: 'absolute',
+                                              top: '100%',
+                                              left: '0',
+                                              marginTop: '8px',
+                                              background: 'white',
+                                              borderRadius: '8px',
+                                              boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
+                                              border: '1px solid #e5e7eb',
+                                              padding: '12px',
+                                              zIndex: 50,
+                                              color: '#374151',
+                                              width: '192px',
+                                              cursor: 'default'
+                                            }}
+                                            onMouseDown={(e) => e.stopPropagation()} 
+                                            onClick={(e) => e.stopPropagation()}
+                                            draggable={false}
+                                          >
+                                            <div style={{ marginBottom: '12px' }}>
+                                              <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Width (px)</label>
+                                              <input 
+                                                type="number" 
+                                                value={conf.width || ''}
+                                                placeholder="Auto"
+                                                onChange={(e) => {
+                                                  const val = e.target.value ? parseInt(e.target.value) : 0;
+                                                  onFieldPropertyChange(key, 'width', val);
+                                                }}
+                                                style={{
+                                                  width: '100%',
+                                                  padding: '4px 8px',
+                                                  fontSize: '14px',
+                                                  border: '1px solid #d1d5db',
+                                                  borderRadius: '4px',
+                                                  outline: 'none'
+                                                }}
+                                                onFocus={(e) => e.currentTarget.style.borderColor = '#3b82f6'}
+                                                onBlur={(e) => e.currentTarget.style.borderColor = '#d1d5db'}
+                                              />
+                                            </div>
+                                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                              <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#6b7280' }}>Wrap Text</label>
+                                              <input 
+                                                type="checkbox" 
+                                                checked={conf.wrap_text || false}
+                                                onChange={(e) => {
+                                                  onFieldPropertyChange(key, 'wrap_text', e.target.checked);
+                                                }}
+                                                style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#2563eb' }}
+                                              />
+                                            </div>
+                                            <div style={{ 
+                                              fontSize: '10px', 
+                                              color: '#9ca3af', 
+                                              paddingTop: '8px', 
+                                              marginTop: '12px', 
+                                              borderTop: '1px solid #e5e7eb',
+                                              display: 'flex',
+                                              justifyContent: 'space-between'
+                                            }}>
+                                              <span>X: {Math.round(conf.x)}</span>
+                                              <span>Y: {Math.round(conf.y)}</span>
+                                            </div>
+                                            {/* Triangle Indicator */}
+                                            <div style={{
+                                              position: 'absolute',
+                                              top: '-6px',
+                                              left: '16px',
+                                              width: '12px',
+                                              height: '12px',
+                                              background: 'white',
+                                              borderTop: '1px solid #e5e7eb',
+                                              borderLeft: '1px solid #e5e7eb',
+                                              transform: 'rotate(45deg)'
+                                            }} />
+                                          </div>
+                                        )}
                                     </div>
                                 </div>
                             );

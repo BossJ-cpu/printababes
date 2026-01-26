@@ -46,7 +46,8 @@ export default function HomePage() {
       });
       if (res.ok) {
         const data = await res.json();
-        setAvailableTables(data.tables || []);
+        const filteredTables = (data.tables || []).filter((table: string) => table !== 'data_imports');
+        setAvailableTables(filteredTables);
       }
     } catch (error) {
       console.error('Error fetching available tables:', error);
@@ -137,7 +138,7 @@ export default function HomePage() {
         method: 'HEAD',
         headers: {
           'Bypass-Tunnel-Reminder': 'true',
-          'ngrok-skip-browser-warning': 'true'
+          'ngrok-skip-browser-warning': 'false'
         }
       });
       
@@ -197,7 +198,7 @@ export default function HomePage() {
             </svg>
             Professional PDF Generator
           </div>
-          <h1 className="text-5xl md:text-7xl font-extrabold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-4">
+          <h1 className="text-5xl md:text-7xl font-extrabold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent dark:text-white dark:bg-none mb-4">
             PDF Generator
           </h1>
           <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto transition-colors duration-300">
@@ -219,12 +220,7 @@ export default function HomePage() {
                   <h3 className="text-lg font-bold text-gray-900 dark:text-white transition-colors duration-300">Create Template</h3>
                 </div>
                 <p className="text-gray-700 dark:text-gray-300 mb-4 text-sm transition-colors duration-300">Upload your PDF and configure field positions using our intuitive editor</p>
-                <a href="/pdf-editor" className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-semibold text-sm group-hover:gap-3 transition-all">
-                  Open PDF Editor
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6"/>
-                  </svg>
-                </a>
+                {/* PDF Editor link removed */}
               </div>
               <div className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-xl p-6 border border-indigo-200 dark:border-indigo-700 hover:shadow-lg transition-all duration-300 group">
                 <div className="flex items-center gap-3 mb-3">
@@ -253,7 +249,7 @@ export default function HomePage() {
                 </svg>
                 Choose Your Workflow
               </h3>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 {/* Option A: Database Table */}
                 <button
                   onClick={() => router.push('/pdf-editor?mode=database')}
@@ -266,14 +262,11 @@ export default function HomePage() {
                       </svg>
                     </div>
                     <div>
-                      <h4 className="font-bold text-gray-900 dark:text-white text-base mb-1 transition-colors duration-300">Option A</h4>
+                      <h4 className="font-bold text-gray-900 dark:text-white text-base mb-1 transition-colors duration-300 min-h-[3.5rem]">Choose a database table and upload your pdf template</h4>
                       <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold transition-colors duration-300">PDF + Database Table</p>
                     </div>
                   </div>
-                  <p className="text-sm text-gray-700 dark:text-gray-300 mb-3 transition-colors duration-300">
-                    Choose a database table and upload your PDF template
-                  </p>
-                  <ul className="space-y-1.5 text-xs text-gray-600">
+                  <ul className="space-y-1.5 text-xs text-gray-600 dark:text-white">
                     <li className="flex items-start gap-2">
                       <span className="text-blue-600 mt-0.5">✓</span>
                       <span>Select existing database table</span>
@@ -301,14 +294,11 @@ export default function HomePage() {
                       </svg>
                     </div>
                     <div>
-                      <h4 className="font-bold text-gray-900 dark:text-white text-base mb-1 transition-colors duration-300">Option B</h4>
+                      <h4 className="font-bold text-gray-900 dark:text-white text-base mb-1 transition-colors duration-300 min-h-[3.5rem]">Upload a CSV/Excel file and your pdf template</h4>
                       <p className="text-xs text-green-600 dark:text-green-400 font-semibold transition-colors duration-300">PDF + CSV/Excel File</p>
                     </div>
                   </div>
-                  <p className="text-sm text-gray-700 dark:text-gray-300 mb-3 transition-colors duration-300">
-                    Upload CSV/Excel file and your PDF template
-                  </p>
-                  <ul className="space-y-1.5 text-xs text-gray-600 dark:text-gray-400 transition-colors duration-300">
+                  <ul className="space-y-1.5 text-xs text-gray-600 dark:text-white transition-colors duration-300">
                     <li className="flex items-start gap-2">
                       <span className="text-green-600 dark:text-green-400 mt-0.5">✓</span>
                       <span>Upload CSV/Excel file</span>
@@ -323,12 +313,44 @@ export default function HomePage() {
                     </li>
                   </ul>
                 </button>
+
+                {/* Option C: ERPNext */}
+                <button
+                  onClick={() => router.push('/erp/template-editor')}
+                  className="group p-5 rounded-xl border-2 border-purple-200 dark:border-purple-700 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 hover:from-purple-100 hover:to-pink-100 dark:hover:from-purple-800/30 dark:hover:to-pink-800/30 hover:border-purple-300 dark:hover:border-purple-600 transition-all duration-300 text-left hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className="p-2 bg-purple-600 rounded-lg group-hover:bg-purple-700 transition-colors">
+                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-gray-900 dark:text-white text-base mb-1 transition-colors duration-300 min-h-[3.5rem]">Connect to ERPNext and map fields</h4>
+                      <p className="text-xs text-purple-600 dark:text-purple-400 font-semibold transition-colors duration-300">PDF + ERPNext</p>
+                    </div>
+                  </div>
+                  <ul className="space-y-1.5 text-xs text-gray-600 dark:text-white transition-colors duration-300">
+                    <li className="flex items-start gap-2">
+                      <span className="text-purple-600 dark:text-purple-400 mt-0.5">✓</span>
+                      <span>Select ERP DocType</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-purple-600 dark:text-purple-400 mt-0.5">✓</span>
+                      <span>Fetch live data</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-purple-600 dark:text-purple-400 mt-0.5">✓</span>
+                      <span>Map fields to PDF</span>
+                    </li>
+                  </ul>
+                </button>
               </div>
             </div>
 
             <div className="space-y-6">
               <div>
-                <label htmlFor="table-select" className="flex items-center gap-2 text-sm font-semibold text-gray-800 mb-3">
+                <label htmlFor="table-select" className="flex items-center gap-2 text-sm font-semibold text-gray-800 dark:text-white mb-3">
                   <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
                   </svg>
@@ -359,7 +381,7 @@ export default function HomePage() {
               </div>
 
               <div>
-                <label htmlFor="submission-select" className="flex items-center gap-2 text-sm font-semibold text-gray-800 mb-3">
+                <label htmlFor="submission-select" className="flex items-center gap-2 text-sm font-semibold text-gray-800 dark:text-white dark:text-white mb-3">
                   <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                   </svg>
@@ -386,7 +408,7 @@ export default function HomePage() {
                   })}
                 </select>
                 {!selectedTable && (
-                  <p className="text-sm text-gray-500 mt-2 flex items-center gap-1">
+                  <p className="text-sm text-gray-500 dark:text-white mt-2 flex items-center gap-1">
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"/>
                     </svg>
@@ -404,7 +426,7 @@ export default function HomePage() {
               </div>
 
               <div>
-                <label htmlFor="template-select" className="flex items-center gap-2 text-sm font-semibold text-gray-800 mb-3">
+                <label htmlFor="template-select" className="flex items-center gap-2 text-sm font-semibold text-gray-800 dark:text-white mb-3">
                   <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
                   </svg>
@@ -429,7 +451,7 @@ export default function HomePage() {
                   }
                 </select>
                 {!selectedTable && (
-                  <p className="text-sm text-gray-500 mt-2 flex items-center gap-1">
+                  <p className="text-sm text-gray-500 dark:text-white mt-2 flex items-center gap-1">
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"/>
                     </svg>
@@ -470,7 +492,7 @@ export default function HomePage() {
               </button>
               
               {!selectedSubmissionId || !selectedTemplateKey ? (
-                <p className="text-sm text-gray-500 text-center mt-3 flex items-center justify-center gap-1">
+                <p className="text-sm text-gray-500 dark:text-white text-center mt-3 flex items-center justify-center gap-1">
                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"/>
                   </svg>
@@ -498,22 +520,11 @@ export default function HomePage() {
 
             {/* Link to dedicated pages */}
             <div className="mt-8 pt-6 border-t border-gray-200 flex justify-between items-center">
-              <Link
-                href="/pdf-editor"
-                className="inline-flex items-center gap-2 text-gray-700 hover:text-blue-600 font-medium transition-colors duration-200 group"
-              >
-                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-                </svg>
-                <span>Create/Edit PDF Templates</span>
-                <svg className="ml-1 w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </Link>
+              {/* Create/Edit PDF Templates link removed */}
               
               <Link
                 href="/database-manager"
-                className="inline-flex items-center gap-2 text-gray-700 hover:text-indigo-600 font-medium transition-colors duration-200 group"
+                className="inline-flex items-center gap-2 text-gray-700 dark:text-white hover:text-indigo-600 font-medium transition-colors duration-200 group"
               >
                 <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/>

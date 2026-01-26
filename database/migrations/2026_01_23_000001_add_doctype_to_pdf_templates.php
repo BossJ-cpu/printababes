@@ -12,8 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('pdf_templates', function (Blueprint $table) {
-            $table->string('pdf_path')->nullable()->after('file_path');
-            $table->json('elements')->nullable()->after('pdf_path');
+            $table->string('doctype')->nullable()->after('source_table');
         });
     }
 
@@ -23,7 +22,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('pdf_templates', function (Blueprint $table) {
-            $table->dropColumn(['pdf_path', 'elements']);
+            $table->dropColumn('doctype');
         });
     }
 };

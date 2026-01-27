@@ -542,8 +542,17 @@ class PdfTemplateController extends Controller
                     
                     // Render images (e-signatures, stamps, etc.) for this page
                     $imagesConfig = $template->images_config ?? [];
+                    $recordNumber = $rowIndex + 1; // 1-based record number for range matching
+                    
                     foreach ($imagesConfig as $imageKey => $imageConfig) {
                         if (($imageConfig['page'] ?? 1) == $pageNo && isset($imageConfig['dataUrl'])) {
+                            // Check if this image should be applied to this record based on recordRange
+                            $recordRange = $imageConfig['recordRange'] ?? '';
+                            if (!empty($recordRange) && !$this->isRecordInRange($recordNumber, $recordRange)) {
+                                // Skip this image for this record - not in specified range
+                                continue;
+                            }
+                            
                             $imgX = floatval($imageConfig['x'] ?? 0);
                             $imgY = floatval($imageConfig['y'] ?? 0);
                             $imgWidth = floatval($imageConfig['width'] ?? 20); // Width in mm
@@ -767,5 +776,56 @@ class PdfTemplateController extends Controller
         $template->update($data);
 
         return $template;
+    }
+
+    /**
+     * Check if a record number is within the specified range string
+     * Range format: "1-10, 15, 20-25" (comma-separated ranges and single values)
+     * 
+     * @param int $recordNumber The 1-based record number to check
+     * @param string $rangeString The range specification string
+     * @return bool True if record is in range, false otherwise
+     */
+    private function isRecordInRange(int $recordNumber, string $rangeString): bool
+    {
+        // Empty range means all records
+        if (empty(trim($rangeString))) {
+            return true;
+        }
+
+        // Parse the range string
+        $parts = explode(',', $rangeString);
+        
+        foreach ($parts as $part) {
+            $part = trim($part);
+            if (empty($part)) continue;
+            
+            // Check if it's a range (contains dash)
+            if (strpos($part, '-') !== false) {
+                $rangeParts = explode('-', $part);
+                if (count($rangeParts) === 2) {
+                    $start = intval(trim($rangeParts[0]));
+                    $end = intval(trim($rangeParts[1]));
+                    
+                    // Ensure start <= end
+                    if ($start > $end) {
+                        $temp = $start;
+                        $start = $end;
+                        $end = $temp;
+                    }
+                    
+                    if ($recordNumber >= $start && $recordNumber <= $end) {
+                        return true;
+                    }
+                }
+            } else {
+                // Single value
+                if ($recordNumber === intval($part)) {
+                    return true;
+                }
+            }
+        }
+        
+        return false;
     }
 }

@@ -29,6 +29,7 @@ type ImageConfig = {
   page?: number;
   dataUrl: string; // Base64 encoded image
   name: string;
+  recordRange?: string; // e.g., "1-10, 15, 20-25" or empty for all records
 };
 
 type TemplateConfig = {
@@ -293,6 +294,14 @@ export default function PdfEditorPage() {
   const [uploadedImages, setUploadedImages] = useState<Record<string, ImageConfig>>({});
   const [selectedImageKey, setSelectedImageKey] = useState<string | null>(null);
   const imageInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Draw signature state
+  const [showSignatureModal, setShowSignatureModal] = useState(false);
+  const [signatureStrokes, setSignatureStrokes] = useState<{x: number; y: number}[][]>([]);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [penThickness, setPenThickness] = useState(3);
+  const [signatureRecordRange, setSignatureRecordRange] = useState('');
+  const signatureCanvasRef = React.useRef<HTMLCanvasElement>(null);
 
   // Redirect if no valid mode
   useEffect(() => {
@@ -1145,6 +1154,200 @@ export default function PdfEditorPage() {
     }
     showNotif('Image removed', 'info');
   };
+
+  // Draw signature handlers
+  const openSignatureModal = () => {
+    setShowSignatureModal(true);
+    setSignatureStrokes([]);
+    setSignatureRecordRange('');
+  };
+
+  const closeSignatureModal = () => {
+    setShowSignatureModal(false);
+    setSignatureStrokes([]);
+    setSignatureRecordRange('');
+  };
+
+  const getCanvasCoordinates = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    const canvas = signatureCanvasRef.current;
+    if (!canvas) return { x: 0, y: 0 };
+    
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    
+    if ('touches' in e) {
+      const touch = e.touches[0];
+      return {
+        x: (touch.clientX - rect.left) * scaleX,
+        y: (touch.clientY - rect.top) * scaleY
+      };
+    } else {
+      return {
+        x: (e.clientX - rect.left) * scaleX,
+        y: (e.clientY - rect.top) * scaleY
+      };
+    }
+  };
+
+  const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    setIsDrawing(true);
+    const coords = getCanvasCoordinates(e);
+    setSignatureStrokes(prev => [...prev, [coords]]);
+  };
+
+  const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
+    if (!isDrawing) return;
+    e.preventDefault();
+    
+    const coords = getCanvasCoordinates(e);
+    setSignatureStrokes(prev => {
+      const newStrokes = [...prev];
+      const currentStroke = newStrokes[newStrokes.length - 1];
+      if (currentStroke) {
+        currentStroke.push(coords);
+      }
+      return newStrokes;
+    });
+  };
+
+  const stopDrawing = () => {
+    setIsDrawing(false);
+  };
+
+  const clearSignature = () => {
+    setSignatureStrokes([]);
+  };
+
+  const undoLastStroke = () => {
+    setSignatureStrokes(prev => prev.slice(0, -1));
+  };
+
+  // Redraw canvas when strokes change
+  useEffect(() => {
+    const canvas = signatureCanvasRef.current;
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    // Clear canvas
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw all strokes
+    ctx.strokeStyle = 'black';
+    ctx.lineWidth = penThickness;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    
+    signatureStrokes.forEach(stroke => {
+      if (stroke.length < 2) return;
+      
+      ctx.beginPath();
+      ctx.moveTo(stroke[0].x, stroke[0].y);
+      
+      for (let i = 1; i < stroke.length; i++) {
+        ctx.lineTo(stroke[i].x, stroke[i].y);
+      }
+      ctx.stroke();
+    });
+  }, [signatureStrokes, penThickness]);
+
+  const saveSignature = () => {
+    const canvas = signatureCanvasRef.current;
+    if (!canvas || signatureStrokes.length === 0) {
+      showNotif('Please draw a signature first', 'error');
+      return;
+    }
+    
+    // Get the bounding box of the signature
+    let minX = canvas.width, minY = canvas.height, maxX = 0, maxY = 0;
+    signatureStrokes.forEach(stroke => {
+      stroke.forEach(point => {
+        minX = Math.min(minX, point.x);
+        minY = Math.min(minY, point.y);
+        maxX = Math.max(maxX, point.x);
+        maxY = Math.max(maxY, point.y);
+      });
+    });
+    
+    // Add padding
+    const padding = 10;
+    minX = Math.max(0, minX - padding);
+    minY = Math.max(0, minY - padding);
+    maxX = Math.min(canvas.width, maxX + padding);
+    maxY = Math.min(canvas.height, maxY + padding);
+    
+    // Create a cropped canvas with just the signature
+    const croppedWidth = maxX - minX;
+    const croppedHeight = maxY - minY;
+    
+    const croppedCanvas = document.createElement('canvas');
+    croppedCanvas.width = croppedWidth;
+    croppedCanvas.height = croppedHeight;
+    const croppedCtx = croppedCanvas.getContext('2d');
+    if (!croppedCtx) return;
+    
+    // Fill with transparent background
+    croppedCtx.clearRect(0, 0, croppedWidth, croppedHeight);
+    
+    // Draw strokes on cropped canvas
+    croppedCtx.strokeStyle = 'black';
+    croppedCtx.lineWidth = penThickness;
+    croppedCtx.lineCap = 'round';
+    croppedCtx.lineJoin = 'round';
+    
+    signatureStrokes.forEach(stroke => {
+      if (stroke.length < 2) return;
+      
+      croppedCtx.beginPath();
+      croppedCtx.moveTo(stroke[0].x - minX, stroke[0].y - minY);
+      
+      for (let i = 1; i < stroke.length; i++) {
+        croppedCtx.lineTo(stroke[i].x - minX, stroke[i].y - minY);
+      }
+      croppedCtx.stroke();
+    });
+    
+    const dataUrl = croppedCanvas.toDataURL('image/png');
+    
+    // Convert to mm (approximately 3.78 pixels per mm)
+    const widthMm = Math.round(croppedWidth / 3.78);
+    const heightMm = Math.round(croppedHeight / 3.78);
+    
+    // Generate unique key
+    const timestamp = Date.now();
+    let imageKey = `drawn_signature_${timestamp}`;
+    let counter = 1;
+    while (uploadedImages[imageKey]) {
+      imageKey = `drawn_signature_${timestamp}_${counter}`;
+      counter++;
+    }
+    
+    const newImage: ImageConfig = {
+      x: 100,
+      y: 200,
+      width: widthMm,
+      height: heightMm,
+      page: 1,
+      dataUrl: dataUrl,
+      name: 'Drawn Signature',
+      recordRange: signatureRecordRange.trim() || undefined // Empty means all records
+    };
+    
+    setUploadedImages(prev => ({
+      ...prev,
+      [imageKey]: newImage
+    }));
+    
+    const rangeMsg = signatureRecordRange.trim() 
+      ? ` (for records: ${signatureRecordRange})` 
+      : ' (for all records)';
+    showNotif(`Signature added${rangeMsg}! Drag it onto the PDF to position.`, 'success');
+    closeSignatureModal();
+  };
   
   const handleRenameField = (oldName: string, newName: string) => {
       if(!template || !newName) return;
@@ -1894,6 +2097,18 @@ export default function PdfEditorPage() {
                     Upload PNG/JPG images for signatures, stamps, or logos (max 2MB)
                   </p>
 
+                  {/* Draw Signature Button */}
+                  <button
+                    type="button"
+                    onClick={openSignatureModal}
+                    className="mt-3 w-full py-2.5 px-4 rounded-xl border-2 border-dashed border-amber-400 dark:border-amber-600 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 text-amber-800 dark:text-amber-300 font-semibold text-sm hover:from-amber-100 hover:to-orange-100 dark:hover:from-amber-900/30 dark:hover:to-orange-900/30 transition-all duration-200 flex items-center justify-center gap-2"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                    </svg>
+                    ✍️ Draw Signature
+                  </button>
+
                   {/* Uploaded Images List */}
                   {Object.keys(uploadedImages).length > 0 && (
                     <div className="mt-4 space-y-2">
@@ -1901,33 +2116,59 @@ export default function PdfEditorPage() {
                       {Object.entries(uploadedImages).map(([key, img]) => (
                         <div 
                           key={key}
-                          className={`flex items-center gap-3 p-2 rounded-lg border-2 transition-all cursor-pointer ${
+                          className={`p-2 rounded-lg border-2 transition-all ${
                             selectedImageKey === key 
                               ? 'border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20' 
                               : 'border-emerald-200 dark:border-emerald-800 bg-white dark:bg-gray-800 hover:border-emerald-400'
                           }`}
-                          onClick={() => setSelectedImageKey(key)}
                         >
-                          <img 
-                            src={img.dataUrl} 
-                            alt={img.name}
-                            className="w-10 h-10 object-contain rounded border border-gray-200"
-                          />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">{img.name}</p>
-                            <p className="text-xs text-gray-500">
-                              {img.width}×{img.height}mm | Page {img.page}
+                          <div 
+                            className="flex items-center gap-3 cursor-pointer"
+                            onClick={() => setSelectedImageKey(key)}
+                          >
+                            <img 
+                              src={img.dataUrl} 
+                              alt={img.name}
+                              className="w-10 h-10 object-contain rounded border border-gray-200"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-medium text-gray-800 dark:text-gray-200 truncate">{img.name}</p>
+                              <p className="text-xs text-gray-500">
+                                {img.width}×{img.height}mm | Page {img.page}
+                              </p>
+                            </div>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleRemoveImage(key); }}
+                              className="p-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-colors"
+                              title="Remove image"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
+                              </svg>
+                            </button>
+                          </div>
+                          {/* Record Range Input for each image */}
+                          <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                            <div className="flex items-center gap-2">
+                              <label className="text-xs font-medium text-gray-600 dark:text-gray-400 whitespace-nowrap">
+                                Records:
+                              </label>
+                              <input
+                                type="text"
+                                value={img.recordRange || ''}
+                                onChange={(e) => {
+                                  e.stopPropagation();
+                                  handleImagePropertyChange(key, 'recordRange', e.target.value);
+                                }}
+                                onClick={(e) => e.stopPropagation()}
+                                placeholder="All records"
+                                className="flex-1 px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-dark-bg text-gray-900 dark:text-white focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                              />
+                            </div>
+                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                              {img.recordRange ? `Only: ${img.recordRange}` : 'Applies to all records'}
                             </p>
                           </div>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleRemoveImage(key); }}
-                            className="p-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-colors"
-                            title="Remove image"
-                          >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
-                            </svg>
-                          </button>
                         </div>
                       ))}
                     </div>
@@ -2312,6 +2553,160 @@ export default function PdfEditorPage() {
           </div>
         </div>
       </div>
+
+      {/* Draw Signature Modal */}
+      {showSignatureModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 px-4" role="dialog" aria-modal="true" aria-labelledby="signature-modal-title">
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onClick={closeSignatureModal}></div>
+          <div className="bg-white dark:bg-dark-card rounded-2xl shadow-2xl transform transition-all relative z-10 max-w-lg w-full border border-gray-200 dark:border-dark-border">
+            {/* Modal Header */}
+            <div className="p-4 border-b border-gray-200 dark:border-dark-border flex items-center justify-between">
+              <h3 id="signature-modal-title" className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/>
+                </svg>
+                Draw Your Signature
+              </h3>
+              <button
+                onClick={closeSignatureModal}
+                className="p-1.5 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                aria-label="Close modal"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-4">
+              {/* Pen Thickness Control */}
+              <div className="mb-4 flex items-center gap-4">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">
+                  Pen Thickness:
+                </label>
+                <input
+                  type="range"
+                  min="1"
+                  max="8"
+                  value={penThickness}
+                  onChange={(e) => setPenThickness(Number(e.target.value))}
+                  className="flex-1 h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-amber-500"
+                />
+                <span className="text-sm font-bold text-amber-600 dark:text-amber-400 w-6 text-center">{penThickness}</span>
+                <div 
+                  className="w-8 h-8 rounded-full border-2 border-gray-300 dark:border-gray-600 flex items-center justify-center"
+                  style={{ backgroundColor: 'white' }}
+                >
+                  <div 
+                    className="rounded-full bg-black"
+                    style={{ width: penThickness * 2, height: penThickness * 2 }}
+                  />
+                </div>
+              </div>
+
+              {/* Canvas */}
+              <div className="border-2 border-gray-300 dark:border-gray-600 rounded-xl overflow-hidden bg-white">
+                <canvas
+                  ref={signatureCanvasRef}
+                  width={450}
+                  height={200}
+                  className="w-full cursor-crosshair touch-none"
+                  onMouseDown={startDrawing}
+                  onMouseMove={draw}
+                  onMouseUp={stopDrawing}
+                  onMouseLeave={stopDrawing}
+                  onTouchStart={startDrawing}
+                  onTouchMove={draw}
+                  onTouchEnd={stopDrawing}
+                />
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 text-center">
+                Draw your signature in the box above using your mouse or touchscreen
+              </p>
+
+              {/* Record Range Input */}
+              <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-xl">
+                <label className="block text-sm font-semibold text-blue-900 dark:text-blue-300 mb-2">
+                  📋 Apply to Records (optional)
+                </label>
+                <input
+                  type="text"
+                  value={signatureRecordRange}
+                  onChange={(e) => setSignatureRecordRange(e.target.value)}
+                  placeholder="e.g., 1-10, 15, 20-25 (leave empty for all)"
+                  className="w-full px-3 py-2 text-sm border border-blue-300 dark:border-blue-600 rounded-lg bg-white dark:bg-dark-bg text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                />
+                <p className="text-xs text-blue-700 dark:text-blue-400 mt-1.5">
+                  {signatureRecordRange.trim() 
+                    ? `This signature will only appear on records: ${signatureRecordRange}` 
+                    : 'Leave empty to apply this signature to ALL records'}
+                </p>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-gray-200 dark:border-dark-border flex items-center justify-between gap-3">
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={undoLastStroke}
+                  disabled={signatureStrokes.length === 0}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-all ${
+                    signatureStrokes.length === 0
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-gray-800 dark:text-gray-600'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                  </svg>
+                  Undo
+                </button>
+                <button
+                  type="button"
+                  onClick={clearSignature}
+                  disabled={signatureStrokes.length === 0}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-all ${
+                    signatureStrokes.length === 0
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-gray-800 dark:text-gray-600'
+                      : 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50'
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                  </svg>
+                  Clear
+                </button>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={closeSignatureModal}
+                  className="px-4 py-2 rounded-lg text-sm font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={saveSignature}
+                  disabled={signatureStrokes.length === 0}
+                  className={`px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-1.5 transition-all ${
+                    signatureStrokes.length === 0
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed dark:bg-gray-700 dark:text-gray-500'
+                      : 'bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 shadow-md hover:shadow-lg'
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/>
+                  </svg>
+                  Add to PDF
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Notification Popup */}
       {showNotification && (

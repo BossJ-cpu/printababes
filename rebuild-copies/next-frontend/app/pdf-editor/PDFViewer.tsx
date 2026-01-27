@@ -78,6 +78,8 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
         }));
     };
 
+
+
     const getCoordinates = (e: React.MouseEvent<HTMLDivElement>, pageNumber: number) => {
         const rect = e.currentTarget.getBoundingClientRect();
         
@@ -262,7 +264,13 @@ export default function PDFViewer({ url, template, onAddField, onUpdateField, co
                                 cursor: 'crosshair', 
                                 marginBottom: '1rem',
                                 width: 'fit-content',
-                                margin: '0 auto 1rem auto'
+                                margin: '0 auto 1rem auto',
+                                scrollSnapAlign: 'start',
+                                scrollSnapStop: 'always',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                overflow: 'hidden'
                             }}
                             onMouseMove={(e) => handleMouseMove(e, pageNumber)} 
                             onMouseLeave={() => setHoverCoords(null)}

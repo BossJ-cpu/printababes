@@ -180,6 +180,20 @@ Response: PDF file download
 - Ensure PDF template is uploaded
 - Check that CSV import is still active
 
+## Handling Missing Data
+
+**Problem:**
+Users may upload files where some cells are left blank (e.g., a customer without an email address or age). There was a concern that this might cause the bulk generation process to crash or display "null" text in the final PDF.
+
+**Solution & Behavior:**
+The system is designed to handle missing data gracefully:
+1. **Empty Cell Detection:** The CSV parser identifies empty cells as `NULL` values.
+2. **Safe Conversion:** The backend uses a "null coalescing" strategy (`$value ?? ''`). If a value is missing for a specific column in a specific row, it is automatically converted to an empty string.
+3. **Result:**
+   - The generation process will **not** crash.
+   - The field on the PDF will simply appear blank/empty for that specific record.
+   - For example, if a row has a blank "Email" column, the spot where the email usually prints will be empty, while all other fields (Name, Age, etc.) will print normally.
+
 ## Sample Files
 
 A sample CSV file is included: `sample_bulk_data.csv`

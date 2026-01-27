@@ -531,7 +531,22 @@ class PdfTemplateController extends Controller
 
             $fullPath = storage_path('app/public/' . $filePath);
             
-            return response()->download($fullPath, "record_{$index}.pdf", [
+            // Determine filename based on template name
+            $downloadName = "record_{$index}.pdf"; // Default fallback
+            
+            // Try to extract template key and get name
+            // Session ID format: bulk_{key}_{timestamp}
+            if (preg_match('/^bulk_(.+)_\d+$/', $sessionId, $matches)) {
+                 $key = $matches[1];
+                 $template = PdfTemplate::where('key', $key)->first();
+                 if ($template && $template->name) {
+                     // Sanitize name for filename
+                     $safeName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $template->name);
+                     $downloadName = "{$safeName}_no.{$index}.pdf";
+                 }
+            }
+
+            return response()->download($fullPath, $downloadName, [
                 'Content-Type' => 'application/pdf',
                 'Access-Control-Allow-Origin' => '*'
             ]);
@@ -562,12 +577,30 @@ class PdfTemplateController extends Controller
             $zipPath = storage_path('app/public/generated/' . $zipFileName);
             
             $zip = new \ZipArchive();
+
+            // Determine naming scheme for zip entries
+            $templateName = null;
+            if (preg_match('/^bulk_(.+)_\d+$/', $sessionId, $matches)) {
+                 $key = $matches[1];
+                 $template = PdfTemplate::where('key', $key)->first();
+                 if ($template && $template->name) {
+                     $templateName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $template->name);
+                 }
+            }
             
             if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) === TRUE) {
                 foreach ($files as $file) {
                     $fullPath = storage_path('app/public/' . $file);
                     $fileName = basename($file);
-                    $zip->addFile($fullPath, $fileName);
+                    
+                    // Rename entry if template name exists
+                    $entryName = $fileName;
+                    if ($templateName && preg_match('/^record_(\d+)\.pdf$/', $fileName, $fMatches)) {
+                        $idx = $fMatches[1];
+                        $entryName = "{$templateName}_no.{$idx}.pdf";
+                    }
+
+                    $zip->addFile($fullPath, $entryName);
                 }
                 $zip->close();
             } else {

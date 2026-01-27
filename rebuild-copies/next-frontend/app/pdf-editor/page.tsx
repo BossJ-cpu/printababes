@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { useSearchParams, useRouter } from 'next/navigation';
-import ThemeToggle from '../components/ThemeToggle';
+import { useSearchParams, useRouter } from 'next/navigation';import ThemeToggle from '../components/ThemeToggle';
 
 // Use static import if possible or dynamic with no SSR
 import PDFViewer from './PDFViewer';
@@ -219,7 +218,6 @@ export default function PdfEditorPage() {
     }
   }, [mode, router]);
 
-  // Fetch actual PDF dimensions from backend
   const fetchPdfDimensions = async (templateKey: string, retryCount = 0): Promise<any> => {
     if (!templateKey) return null;
     
@@ -339,7 +337,8 @@ export default function PdfEditorPage() {
       
       if (res.ok) {
         const data = await res.json();
-        setAvailableTables(data.tables || []);
+        const filteredTables = (data.tables || []).filter((table: string) => table !== 'data_imports');
+        setAvailableTables(filteredTables);
       } else {
         console.error('Failed to fetch available tables');
       }
@@ -384,7 +383,9 @@ export default function PdfEditorPage() {
       try {
           // Add timeout to prevent hanging
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+          const timeoutId = setTimeout(() => {
+              controller.abort('Request timeout after 30 seconds');
+          }, 30000); // 30 second timeout (increased from 10)
           
           const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/pdf-templates`, {
               headers: {
@@ -406,7 +407,8 @@ export default function PdfEditorPage() {
       } catch (e) {
           console.error("Failed to fetch profiles", e);
           if (e instanceof Error && e.name === 'AbortError') {
-              showNotif('Loading templates timed out. Backend might be slow or down.', 'error');
+              console.warn('Template loading timed out - backend may be slow');
+              showNotif('Loading templates timed out. Backend might be slow or down.', 'info');
           } else {
               showNotif('Failed to connect to server. Check your connection.', 'error');
           }
@@ -1120,9 +1122,66 @@ export default function PdfEditorPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-dark-bg dark:via-dark-bg dark:to-dark-bg transition-colors duration-300">
+    <>
+      {/* Force scrollbars to always show on Windows */}
+      <style jsx global>{`
+        .pdf-preview-scroll::-webkit-scrollbar {
+          width: 12px !important;
+          display: block !important;
+        }
+        .pdf-preview-scroll::-webkit-scrollbar-track {
+          background: #f1f5f9 !important;
+          border-radius: 10px;
+        }
+        .pdf-preview-scroll::-webkit-scrollbar-thumb {
+          background: #cbd5e1 !important;
+          border-radius: 10px;
+          border: 2px solid #f1f5f9;
+        }
+        .pdf-preview-scroll::-webkit-scrollbar-thumb:hover {
+          background: #94a3b8 !important;
+        }
+        .config-scroll::-webkit-scrollbar {
+          width: 12px !important;
+          display: block !important;
+        }
+        .config-scroll::-webkit-scrollbar-track {
+          background: #f1f5f9 !important;
+          border-radius: 10px;
+        }
+        .config-scroll::-webkit-scrollbar-thumb {
+          background: #cbd5e1 !important;
+          border-radius: 10px;
+          border: 2px solid #f1f5f9;
+        }
+        .config-scroll::-webkit-scrollbar-thumb:hover {
+          background: #94a3b8 !important;
+        }
+        
+        /* Force scrollbars to always be visible and enable per-page scroll snapping */
+        .pdf-preview-scroll,
+        .config-scroll {
+          overflow-y: scroll !important;
+          scrollbar-width: thin !important;
+          scrollbar-color: #cbd5e1 #f1f5f9 !important;
+        }
+
+        /* Enable whole-page snapping inside the PDF preview area */
+        .pdf-preview-scroll {
+          scroll-snap-type: y mandatory;
+          -webkit-overflow-scrolling: touch;
+        }
+
+        /* Make direct children snap to the container (pages rendered by PDFViewer) */
+        .pdf-preview-scroll > div > * {
+          scroll-snap-align: start;
+          scroll-snap-stop: always;
+        }
+      `}</style>
+      
+      <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-dark-bg dark:via-dark-bg dark:to-dark-bg transition-colors duration-300">
       {/* Header */}
-      <header className="bg-white dark:bg-dark-card shadow-sm border-b border-gray-200 dark:border-dark-border transition-colors duration-300" role="banner">
+      <header className="flex-shrink-0 bg-white dark:bg-dark-card shadow-sm border-b border-gray-200 dark:border-dark-border transition-colors duration-300" role="banner">
         <div className="relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 to-indigo-600/5 dark:from-blue-400/10 dark:to-indigo-400/10"></div>
           <div className="relative max-w-full mx-auto px-6 py-3">
@@ -1149,57 +1208,11 @@ export default function PdfEditorPage() {
         </div>
       </header>
 
-      {/* Scrollable Columns Section - Show database fields OR CSV columns */}
-      {((dataSourceType === 'database' && template.source_table && tableColumns.length > 0) || 
-        (dataSourceType === 'csv' && csvImport && csvColumns.length > 0)) && (
-        <div className="max-w-full mx-auto px-6 py-2">
-          <div className="bg-white dark:bg-dark-card rounded-xl shadow-md border border-gray-200 dark:border-dark-border p-4 transition-colors duration-300">
-            <div className="flex items-center gap-3 mb-3">
-              <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-              </svg>
-              <div>
-                <h3 className="text-sm font-bold text-gray-900 dark:text-white transition-colors duration-300">
-                  {dataSourceType === 'database' ? `Available Fields from ${template.source_table}` : 'Available Columns from CSV/Excel'}
-                </h3>
-                <p className="text-xs text-gray-500">
-                  {dataSourceType === 'database' ? 'Click a field to add it to your PDF template' : 'Click a column to add it to your PDF template'}
-                </p>
-              </div>
-            </div>
-            <div className="overflow-x-auto">
-              <div className="flex gap-2 pb-2 min-w-min">
-                {dataSourceType === 'database' && tableColumns.map((col) => (
-                  <button
-                    key={col}
-                    onClick={() => handleColumnClick(col)}
-                    className="px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all duration-200 bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700 shadow-md hover:shadow-lg hover:scale-105 active:scale-95"
-                    title={`Click to add "${col}" field (can add multiple times)`}
-                  >
-                    {col}
-                  </button>
-                ))}
-                {dataSourceType === 'csv' && csvColumns.map((col, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => handleCsvColumnClick(col, idx)}
-                    className="px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all duration-200 bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 shadow-md hover:shadow-lg hover:scale-105 active:scale-95"
-                    title={`Click to add "${col}" column (can add multiple times)`}
-                  >
-                    {col}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="max-w-full mx-auto px-6 py-4">
-        <div className="grid grid-cols-12 gap-6 h-[calc(100vh-140px)]">
+      <div className="flex-1 max-w-full mx-auto px-6 py-4">
+        <div className="grid grid-cols-12 gap-6">
           
           {/* Sidebar Editor */}
-          <section className="col-span-4 bg-white dark:bg-dark-card rounded-2xl shadow-xl border border-gray-200 dark:border-dark-border overflow-hidden flex flex-col hover:shadow-2xl transition-all duration-300" aria-label="Configuration Panel">
+          <section className="col-span-4 bg-white dark:bg-dark-card rounded-2xl shadow-xl border border-gray-200 dark:border-dark-border flex flex-col hover:shadow-2xl transition-all duration-300" aria-label="Configuration Panel">
             <div className="p-5 border-b border-gray-200 dark:border-dark-border bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 flex-shrink-0 transition-colors duration-300">
               <div className="flex items-center gap-2 mb-2">
                 <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -1211,7 +1224,7 @@ export default function PdfEditorPage() {
             </div>
             
             {/* Scrollable Content Area */}
-            <div className="flex-1 p-5 overflow-y-auto" style={{ height: 'calc(100vh - 280px)' }}>
+            <div className="p-5">
               
               {/* MODE: DATABASE - Table Selection */}
               {mode === 'database' && (
@@ -1313,7 +1326,7 @@ export default function PdfEditorPage() {
                         </select>
 
                         {/* Template Name Input (only if creating new) */}
-                        {!template.key && (
+                        {!template.id && (
                           <div>
                             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2 transition-colors duration-300">
                               Template Name *
@@ -1321,7 +1334,11 @@ export default function PdfEditorPage() {
                             <input
                               type="text"
                               value={template.name || ''}
-                              onChange={(e) => setTemplate({ ...template, name: e.target.value, key: e.target.value.toLowerCase().replace(/\s+/g, '_') })}
+                              onChange={(e) => {
+                                const name = e.target.value;
+                                const key = name.toLowerCase().replace(/\s+/g, '_');
+                                setTemplate({ ...template, name: name, key: key });
+                              }}
                               placeholder="e.g., Certificate Template, Invoice Template"
                               className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-bg text-gray-900 dark:text-white rounded-xl focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400 transition-colors duration-200"
                               required
@@ -1332,33 +1349,6 @@ export default function PdfEditorPage() {
                           </div>
                         )}
                       </div>
-
-                      {/* Step 3: PDF Upload (only show after template selection) */}
-                      {template.name && (
-                        <div className="mb-5">
-                          <div className="flex items-center gap-2 mb-3">
-                            <h3 className="font-bold text-gray-900 dark:text-white transition-colors duration-300">Step 3: Upload PDF Template</h3>
-                          </div>
-                          <div className="mb-5 p-4 border-2 border-dashed border-indigo-300 rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50">
-                            <div className="flex items-center gap-2 mb-3">
-                              <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
-                              </svg>
-                              <h3 className="text-sm font-bold text-indigo-900">PDF Template File</h3>
-                            </div>
-                            <input 
-                              id="pdf-file-upload"
-                              name="pdfFileUpload"
-                              key={fileInputKey}
-                              type="file" 
-                              accept=".pdf"
-                              onChange={handleFileUpload}
-                              className="w-full text-sm text-gray-700 dark:text-gray-300 file:mr-4 file:py-2.5 file:px-5 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-gradient-to-r file:from-blue-600 file:to-indigo-600 file:text-white hover:file:from-blue-700 hover:file:to-indigo-700 file:cursor-pointer file:transition-all file:duration-200"
-                            />
-                            <p className="text-xs text-indigo-700 mt-2">Maximum file size: 10MB</p>
-                          </div>
-                        </div>
-                      )}
                     </>
                   )}
                 </>
@@ -1376,7 +1366,15 @@ export default function PdfEditorPage() {
                   value={template.key} 
                   onChange={(e) => {
                       if (e.target.value === '') {
-                           loadProfile('');
+                           setTemplate(prev => ({ 
+                               ...prev, 
+                               key: '', 
+                               id: undefined, 
+                               name: '',
+                               fields_config: {}
+                           }));
+                           setPreviewUrl(null);
+                           setPreviewError(null);
                       } else {
                           loadProfile(e.target.value);
                       }
@@ -1399,57 +1397,61 @@ export default function PdfEditorPage() {
                     No templates for {template.source_table} table yet
                   </p>
                 )}
+
+                {/* Template Name Input - Database Mode */}
+                {!template.id && template.source_table && (
+                  <div className="mt-3">
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2 transition-colors duration-300">
+                      Template Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={template.name || ''}
+                      onChange={(e) => {
+                        const name = e.target.value;
+                        const key = name.toLowerCase().replace(/\s+/g, '_');
+                        setTemplate({ ...template, name: name, key: key });
+                      }}
+                      placeholder="e.g., Certificate Template, Invoice Template"
+                      className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-bg text-gray-900 dark:text-white rounded-xl focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400 transition-colors duration-200"
+                      required
+                    />
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 transition-colors duration-300">
+                      Enter a unique name for this template
+                    </p>
+                  </div>
+                )}
               </div>
               )}
 
-              {/* Template Name Input */}
-              <div className="mb-5">
-                <label htmlFor="profile-key" className="flex items-center gap-2 text-sm font-semibold text-gray-800 dark:text-gray-200 mb-3 transition-colors duration-300">
-                  <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
-                  </svg>
-                  Template Name
-                </label>
-                <input 
-                  id="profile-key"
-                  name="profileKey"
-                  type="text"
-                  value={template.key}
-                  onChange={(e) => setTemplate({ ...template, key: e.target.value })}
-                  placeholder="Enter template name (e.g. certificate, form)"
-                  className="w-full px-4 py-3 border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-dark-bg text-gray-900 dark:text-white rounded-xl focus:ring-2 focus:ring-purple-500 dark:focus:ring-purple-400 focus:border-purple-500 dark:focus:border-purple-400 font-medium text-sm transition-all duration-200 hover:border-gray-400 dark:hover:border-gray-500"
-                />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 flex items-center gap-1 transition-colors duration-300">
-                  <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"/>
-                  </svg>
-                  Change this to create or edit a different template
-                </p>
-              </div>
-
-              {/* PDF Upload */}
-              <div className="mb-5 p-4 border-2 border-dashed border-indigo-300 dark:border-indigo-700 rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-gray-900 dark:to-gray-900 transition-colors duration-300">
-                <label htmlFor="pdf-upload" className="flex items-center gap-2 text-sm font-bold text-indigo-900 dark:text-white mb-3 transition-colors duration-300">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
-                  </svg>
-                  Upload PDF Template
-                </label>
-                <input 
-                  id="pdf-upload"
-                  name="pdfUpload"
-                  type="file" 
-                  accept=".pdf,application/pdf"
-                  onChange={handleFileUpload}
-                  key={fileInputKey}
-                  className="w-full text-sm text-gray-700 dark:text-gray-300 file:mr-4 file:py-2.5 file:px-5 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-gradient-to-r file:from-blue-600 file:to-indigo-600 file:text-white hover:file:from-blue-700 hover:file:to-indigo-700 file:transition-all file:duration-200 file:shadow-md hover:file:shadow-lg cursor-pointer"
-                />
-                <p className="text-xs text-indigo-700 dark:text-gray-300 mt-3 flex items-center gap-1 transition-colors duration-300">
-                  <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"/>
-                  </svg>
-                  Upload your PDF template file. After upload, click Preview to view it
-                </p>
+              {/* Configuration Section - ALWAYS SHOW */}
+              <div className="mb-5 p-4 border-2 border-blue-300 dark:border-blue-700 rounded-xl bg-blue-50 dark:bg-blue-900/20 transition-colors duration-300">
+                <h3 className="text-base font-bold text-blue-900 dark:text-blue-100 mb-4 transition-colors duration-300">📋 Configuration</h3>
+                
+                {/* PDF Upload - ALWAYS SHOW */}
+                <div className="mb-4 p-4 border-2 border-dashed border-indigo-300 dark:border-indigo-700 rounded-xl bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-gray-900 dark:to-gray-900 transition-colors duration-300">
+                  <label htmlFor="pdf-upload" className="flex items-center gap-2 text-sm font-bold text-indigo-900 dark:text-white mb-3 transition-colors duration-300">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                    </svg>
+                    Upload PDF Template
+                  </label>
+                  <input 
+                    id="pdf-upload"
+                    name="pdfUpload"
+                    type="file" 
+                    accept=".pdf,application/pdf"
+                    onChange={handleFileUpload}
+                    key={fileInputKey}
+                    className="w-full text-sm text-gray-700 dark:text-gray-300 file:mr-4 file:py-2.5 file:px-5 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-gradient-to-r file:from-blue-600 file:to-indigo-600 file:text-white hover:file:from-blue-700 hover:file:to-indigo-700 file:transition-all file:duration-200 file:shadow-md hover:file:shadow-lg cursor-pointer"
+                  />
+                  <p className="text-xs text-indigo-700 dark:text-gray-300 mt-3 flex items-center gap-1 transition-colors duration-300">
+                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd"/>
+                    </svg>
+                    Upload your PDF template file. After upload, click Preview to view it
+                  </p>
+                </div>
               </div>
 
               {/* Fields Configuration */}
@@ -1576,9 +1578,55 @@ export default function PdfEditorPage() {
             </div>
           </section>
 
-          {/* PDF Preview */}
-          <section className="col-span-8 bg-white dark:bg-dark-card rounded-2xl shadow-xl border border-gray-200 dark:border-dark-border overflow-hidden hover:shadow-2xl transition-all duration-300" aria-label="PDF Preview">
-            <div className="p-5 border-b border-gray-200 dark:border-dark-border bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 transition-colors duration-300">
+          {/* PDF Preview Column */}
+          <div className="col-span-8 flex flex-col gap-4">
+            {/* Scrollable Columns Section - Show database fields OR CSV columns */}
+            {((dataSourceType === 'database' && template.source_table && tableColumns.length > 0) || 
+              (dataSourceType === 'csv' && csvImport && csvColumns.length > 0)) && (
+              <div className="flex-shrink-0 bg-white dark:bg-dark-card rounded-xl shadow-md border border-gray-200 dark:border-dark-border p-4 transition-colors duration-300">
+                <div className="flex items-center gap-3 mb-3">
+                  <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                  </svg>
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-900 dark:text-white transition-colors duration-300">
+                      {dataSourceType === 'database' ? `Available Fields from ${template.source_table}` : 'Available Columns from CSV/Excel'}
+                    </h3>
+                    <p className="text-xs text-gray-500">
+                      {dataSourceType === 'database' ? 'Click a field to add it to your PDF template' : 'Click a column to add it to your PDF template'}
+                    </p>
+                  </div>
+                </div>
+                <div className="overflow-x-auto">
+                  <div className="flex gap-2 pb-2 min-w-min">
+                    {dataSourceType === 'database' && tableColumns.map((col) => (
+                      <button
+                        key={col}
+                        onClick={() => handleColumnClick(col)}
+                        className="px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all duration-200 bg-gradient-to-r from-blue-500 to-indigo-600 text-white hover:from-blue-600 hover:to-indigo-700 shadow-md hover:shadow-lg hover:scale-105 active:scale-95"
+                        title={`Click to add "${col}" field (can add multiple times)`}
+                      >
+                        {col}
+                      </button>
+                    ))}
+                    {dataSourceType === 'csv' && csvColumns.map((col, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => handleCsvColumnClick(col, idx)}
+                        className="px-4 py-2 rounded-lg text-sm font-semibold whitespace-nowrap transition-all duration-200 bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:from-green-600 hover:to-emerald-700 shadow-md hover:shadow-lg hover:scale-105 active:scale-95"
+                        title={`Click to add "${col}" column (can add multiple times)`}
+                      >
+                        {col}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* PDF Preview */}
+            <section className="bg-white dark:bg-dark-card rounded-2xl shadow-xl border border-gray-200 dark:border-dark-border hover:shadow-2xl transition-all duration-300 flex flex-col" aria-label="PDF Preview">
+            <div className="p-5 border-b border-gray-200 dark:border-dark-border bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 transition-colors duration-300 flex-shrink-0">
               <div className="flex items-center justify-between">
                 <div>
                   <div className="flex items-center gap-2 mb-2">
@@ -1665,8 +1713,11 @@ export default function PdfEditorPage() {
               </div>
             </div>
             
-            <div className="p-6 h-full bg-gradient-to-br from-gray-50 to-blue-50 dark:from-dark-bg dark:to-dark-bg overflow-auto transition-colors duration-300">
-              <div className="flex items-start justify-center h-full min-h-96">
+            {/* Scrollable PDF Content Area - Same structure as Configuration section */}
+            <div 
+              className="pdf-preview-scroll bg-gradient-to-br from-gray-50 to-blue-50 dark:from-dark-bg dark:to-dark-bg transition-colors duration-300"
+            >
+              <div className="p-6">
                 {bulkPdfUrls.length > 0 ? (
                   <div className="max-w-4xl w-full">
                     <div className="bg-white dark:bg-white rounded-lg shadow-lg p-4 mb-4">
@@ -1699,7 +1750,8 @@ export default function PdfEditorPage() {
                       
                       <iframe
                         src={bulkPdfUrls[bulkCurrentPage - 1]}
-                        className="w-full h-[700px] border rounded"
+                        className="w-full border rounded"
+                        style={{ height: '800px' }}
                         title={`Bulk PDF Preview - Page ${bulkCurrentPage}`}
                       />
                     </div>
@@ -1745,6 +1797,7 @@ export default function PdfEditorPage() {
               </div>
             </div>
           </section>
+          </div>
         </div>
       </div>
 
@@ -1794,6 +1847,7 @@ export default function PdfEditorPage() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }

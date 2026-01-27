@@ -1,0 +1,5 @@
+# Global Dark Mode Implementation
+
+We have successfully implemented a global dark mode across the Next.js frontend (`rebuild-copies/next-frontend`) utilizing Tailwind CSS's `dark:` utility classes and a custom `ThemeToggle` component integrated into the page headers. The application now features responsive backgrounds that transition from light gradients to deep dark tones (`gray-900`/`dark-bg`), ensuring a cohesive visual experience.
+
+Key updates include a comprehensive refactor of both the Homepage (`app/page.tsx`) and the Database Manager (`app/database-manager/page.tsx`). On the homepage, all primary text and labels were forced to "bright white" (`dark:text-white`) to meet specific high-contrast legibility requirements. The Database Manager received extensive styling updates for data tables, form inputs, modals, and management cards to ensure they are fully readable in dark mode. Additionally, UI clutter was reduced by removing redundant navigation buttons and icons, streamlining the interface while maintaining the new dark aesthetic.

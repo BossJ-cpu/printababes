@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';import ThemeToggle from '../components/ThemeToggle';
+import * as XLSX from 'xlsx';
 
 // Use static import if possible or dynamic with no SSR
 import PDFViewer from './PDFViewer';
@@ -1170,55 +1171,95 @@ export default function PdfEditorPage() {
     }
     
     const file = e.target.files[0];
+    const fileExtension = file.name.split('.').pop()?.toLowerCase();
     
-    // Parse CSV locally to get columns without needing template ID
     try {
-      const text = await file.text();
-      const lines = text.split('\n');
-      if (lines.length < 2) {
-        throw new Error('CSV file must have at least a header row and one data row');
+      let headers: string[] = [];
+      let dataRowCount = 0;
+      
+      if (fileExtension === 'csv') {
+        // Parse CSV file
+        const text = await file.text();
+        const lines = text.split('\n');
+        if (lines.length < 2) {
+          throw new Error('CSV file must have at least a header row and one data row');
+        }
+        
+        headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+        dataRowCount = lines.slice(1).filter(line => line.trim() !== '').length;
+      } else if (fileExtension === 'xlsx' || fileExtension === 'xls') {
+        // Parse Excel file using xlsx library
+        const arrayBuffer = await file.arrayBuffer();
+        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+        
+        // Get the first sheet
+        const firstSheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[firstSheetName];
+        
+        // Convert to JSON to get headers and data
+        const jsonData = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet, { header: 1 });
+        
+        if (jsonData.length < 2) {
+          throw new Error('Excel file must have at least a header row and one data row');
+        }
+        
+        // First row is headers
+        headers = (jsonData[0] as unknown[]).map(h => String(h || '').trim());
+        dataRowCount = jsonData.length - 1; // Exclude header row
+      } else {
+        throw new Error('Unsupported file type. Please upload a .csv, .xlsx, or .xls file');
       }
       
-      const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
-      const dataRows = lines.slice(1).filter(line => line.trim() !== '');
+      // Filter out empty headers
+      headers = headers.filter(h => h !== '');
       
-      // Store CSV info temporarily
+      if (headers.length === 0) {
+        throw new Error('No valid column headers found in the file');
+      }
+      
+      // Store CSV/Excel info temporarily
       setCsvImport({
         filename: file.name,
-        total_rows: dataRows.length,
+        total_rows: dataRowCount,
         file: file // Store the actual file for later upload
       });
       setCsvColumns(headers);
       setDataSourceType('csv');
       
-      showNotif(`CSV loaded! ${dataRows.length} records, ${headers.length} columns found`, 'success');
+      showNotif(`File loaded! ${dataRowCount} records, ${headers.length} columns found`, 'success');
     } catch (error) {
-      console.error('CSV parse error:', error);
-      showNotif('Failed to parse CSV: ' + error, 'error');
+      console.error('File parse error:', error);
+      showNotif('Failed to parse file: ' + error, 'error');
     }
   };
 
   const handleRemoveCsvImport = async () => {
-    if (!template.id || !csvImport) return;
+    if (!csvImport) return;
 
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/templates/${template.id}/import`, {
-        method: 'DELETE',
-        headers: {
-          'Bypass-Tunnel-Reminder': 'true',
-          'ngrok-skip-browser-warning': 'true'
+    // If template has been saved to backend, also delete from server
+    if (template.id) {
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/templates/${template.id}/import`, {
+          method: 'DELETE',
+          headers: {
+            'Bypass-Tunnel-Reminder': 'true',
+            'ngrok-skip-browser-warning': 'true'
+          }
+        });
+
+        if (!res.ok) {
+          console.warn('Server delete failed, but will clear local state anyway');
         }
-      });
-
-      if (!res.ok) throw new Error('Delete failed');
-
-      setCsvImport(null);
-      setCsvColumns([]);
-      showNotif('CSV import removed', 'success');
-    } catch (error) {
-      console.error('Delete error:', error);
-      showNotif('Failed to remove CSV import: ' + error, 'error');
+      } catch (error) {
+        console.warn('Server delete error:', error);
+        // Continue to clear local state even if server delete fails
+      }
     }
+
+    // Always clear local state
+    setCsvImport(null);
+    setCsvColumns([]);
+    showNotif('CSV/Excel import removed', 'success');
   };
 
   const handleCsvColumnClick = (columnName: string, columnIndex: number) => {

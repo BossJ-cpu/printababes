@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import ThemeToggle from '../../components/ThemeToggle';
 
 type ReportColumn = {
   fieldname: string;
@@ -65,6 +66,9 @@ export default function ErpTemplateEditorPage() {
   const [message, setMessage] = useState<{text: string; type: 'success' | 'error' | 'info'} | null>(null);
   const [saving, setSaving] = useState(false);
   const [currentPage] = useState(1);
+  const [existingTemplates, setExistingTemplates] = useState<{id: string; name: string; key: string}[]>([]);
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [duplicateTemplateName, setDuplicateTemplateName] = useState('');
 
   // Load PDF.js
   useEffect(() => {
@@ -80,7 +84,22 @@ export default function ErpTemplateEditorPage() {
   // Load reports on mount
   useEffect(() => {
     loadReports();
+    loadExistingTemplates();
   }, []);
+
+  const loadExistingTemplates = async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/erp/templates`, {
+        headers: { 'Bypass-Tunnel-Reminder': 'true', 'ngrok-skip-browser-warning': 'true' }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setExistingTemplates(data.templates || []);
+      }
+    } catch (error) {
+      console.error('Error loading existing templates:', error);
+    }
+  };
 
   // Keyboard navigation for selected field
   useEffect(() => {
@@ -331,7 +350,20 @@ export default function ErpTemplateEditorPage() {
     setSelectedFieldIndex(null);
   };
 
-  const saveTemplate = async () => {
+  const checkForDuplicate = () => {
+    const normalizedName = templateName.trim().toLowerCase();
+    const normalizedKey = normalizedName.replace(/[^a-z0-9]+/g, '_');
+    
+    const duplicate = existingTemplates.find(t => {
+      const existingName = (t.name || '').toLowerCase();
+      const existingKey = t.key || existingName.replace(/[^a-z0-9]+/g, '_');
+      return existingName === normalizedName || existingKey === normalizedKey;
+    });
+    
+    return duplicate;
+  };
+
+  const saveTemplate = async (forceOverwrite: boolean = false) => {
     if (!templateName.trim()) {
       showMessage('Please enter a template name', 'error');
       return;
@@ -347,6 +379,16 @@ export default function ErpTemplateEditorPage() {
     if (!selectedReport) {
       showMessage('Please select a report first', 'error');
       return;
+    }
+
+    // Check for duplicate template name
+    if (!forceOverwrite) {
+      const duplicate = checkForDuplicate();
+      if (duplicate) {
+        setDuplicateTemplateName(duplicate.name);
+        setShowDuplicateModal(true);
+        return;
+      }
     }
 
     setSaving(true);
@@ -385,37 +427,53 @@ export default function ErpTemplateEditorPage() {
   };
 
   return (
-    <div className="bg-gray-50 h-screen flex flex-col overflow-hidden text-gray-800" style={{ fontFamily: "'Inter', sans-serif" }}>
-      <div className="flex h-screen w-full">
-        {/* Sidebar */}
-        <aside className="w-96 bg-white border-r border-gray-200 flex flex-col shrink-0 z-20 shadow-xl">
-          {/* Sidebar Header */}
-          <div className="px-6 py-6 border-b border-gray-100 bg-white">
-            <div className="flex items-center justify-between mb-6">
-              <Link 
-                href="/" 
-                className="flex items-center justify-center w-10 h-10 bg-gray-50 hover:bg-blue-50 hover:text-blue-600 rounded-xl transition-all text-gray-500"
-                title="Back to Home"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                </svg>
-              </Link>
-              <Link 
-                href="/erp/generator" 
-                className="inline-flex items-center px-3 py-1.5 text-xs font-bold text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors uppercase tracking-wide"
-              >
-                Generate PDF
-                <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                </svg>
-              </Link>
+    <div className="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-dark-bg dark:via-dark-bg dark:to-dark-bg h-screen flex flex-col overflow-hidden transition-colors duration-300" style={{ fontFamily: "'Inter', sans-serif" }}>
+      {/* Header */}
+      <header className="flex-shrink-0 bg-white dark:bg-dark-card shadow-sm border-b border-gray-200 dark:border-dark-border transition-colors duration-300" role="banner">
+        <div className="relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-600/5 to-indigo-600/5 dark:from-purple-400/10 dark:to-indigo-400/10"></div>
+          <div className="relative max-w-full mx-auto px-6 py-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-extrabold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent dark:text-white dark:bg-none">ERP Template Editor</h1>
+                <p className="text-gray-600 dark:text-gray-400 mt-1 text-xs transition-colors duration-300">Design PDF templates for ERPNext reports</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <ThemeToggle />
+                <Link
+                  href="/erp/generator"
+                  className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/30 border-2 border-purple-200 dark:border-purple-700 rounded-xl hover:bg-purple-100 dark:hover:bg-purple-900/50 transition-all duration-200 shadow-sm hover:shadow-md"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Generate PDF
+                </Link>
+                <Link
+                  href="/"
+                  className="inline-flex items-center gap-2 px-5 py-2 text-sm font-semibold text-gray-700 dark:text-gray-300 bg-white dark:bg-dark-card border-2 border-gray-300 dark:border-dark-border rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500 transition-all duration-200 shadow-sm hover:shadow-md"
+                  aria-label="Back to Home"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                  </svg>
+                  Back to Home
+                </Link>
+              </div>
             </div>
-
-            <h1 className="text-2xl font-extrabold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">
+          </div>
+        </div>
+      </header>
+      
+      <div className="flex flex-1 w-full overflow-hidden">
+        {/* Sidebar */}
+        <aside className="w-96 bg-white dark:bg-dark-card border-r border-gray-200 dark:border-dark-border flex flex-col shrink-0 z-20 shadow-xl transition-colors duration-300">
+          {/* Sidebar Header */}
+          <div className="px-6 py-6 border-b border-gray-100 dark:border-dark-border bg-white dark:bg-dark-card transition-colors duration-300">
+            <h1 className="text-2xl font-extrabold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent dark:text-white dark:bg-none mb-2">
               Template Editor
             </h1>
-            <p className="text-sm text-gray-500 font-medium leading-relaxed">
+            <p className="text-sm text-gray-500 dark:text-gray-400 font-medium leading-relaxed transition-colors duration-300">
               Design your PDF templates by dragging and dropping fields onto your document.
             </p>
           </div>
@@ -424,25 +482,25 @@ export default function ErpTemplateEditorPage() {
           <div className="flex-1 overflow-y-auto p-6 space-y-8" style={{ scrollbarWidth: 'thin' }}>
             {/* Step 1: Data Source */}
             <div className="space-y-4">
-              <div className="flex items-center gap-2 text-gray-800 font-bold text-sm uppercase tracking-wide">
-                <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs">1</span>
+              <div className="flex items-center gap-2 text-gray-800 dark:text-white font-bold text-sm uppercase tracking-wide transition-colors duration-300">
+                <span className="w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400 flex items-center justify-center text-xs">1</span>
                 Data Source
               </div>
 
               <div className="space-y-3">
-                <label className="block text-sm font-semibold text-gray-700">Select ERPNext Report</label>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 transition-colors duration-300">Select ERPNext Report</label>
                 <div className="relative">
                   <select 
                     value={selectedReport}
                     onChange={handleReportChange}
-                    className="w-full pl-4 pr-10 py-2.5 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 transition-colors appearance-none cursor-pointer"
+                    className="w-full pl-4 pr-10 py-2.5 bg-gray-50 dark:bg-dark-bg border border-gray-300 dark:border-dark-border text-gray-900 dark:text-white text-sm rounded-lg focus:ring-purple-500 focus:border-purple-500 transition-colors appearance-none cursor-pointer"
                   >
                     <option value="">-- Select Report --</option>
                     {reports.map(r => (
                       <option key={r.name} value={r.name}>{r.name}</option>
                     ))}
                   </select>
-                  <div className="absolute right-3 top-3 pointer-events-none text-gray-500">
+                  <div className="absolute right-3 top-3 pointer-events-none text-gray-500 dark:text-gray-400">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
@@ -452,10 +510,10 @@ export default function ErpTemplateEditorPage() {
                 {/* Message Area */}
                 {message && (
                   <div className={`px-4 py-3 rounded-lg border flex items-center text-sm animate-[bounce-in_0.3s_ease-out] ${
-                    message.type === 'success' ? 'bg-green-100 text-green-800 border-green-200' :
-                    message.type === 'error' ? 'bg-red-100 text-red-800 border-red-200' :
-                    'bg-blue-100 text-blue-800 border-blue-200'
-                  }`}>
+                    message.type === 'success' ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border-green-200 dark:border-green-700' :
+                    message.type === 'error' ? 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 border-red-200 dark:border-red-700' :
+                    'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-700'
+                  } transition-colors duration-300`}>
                     {message.type === 'success' && (
                       <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -468,18 +526,18 @@ export default function ErpTemplateEditorPage() {
             </div>
 
             {/* Divider */}
-            <div className="border-t border-gray-100"></div>
+            <div className="border-t border-gray-100 dark:border-dark-border"></div>
 
             {/* Step 2: Fields */}
             <div className="space-y-4 flex-1 flex flex-col">
-              <div className="flex items-center gap-2 text-gray-800 font-bold text-sm uppercase tracking-wide">
-                <span className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs">2</span>
+              <div className="flex items-center gap-2 text-gray-800 dark:text-white font-bold text-sm uppercase tracking-wide transition-colors duration-300">
+                <span className="w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-xs">2</span>
                 Drag & Drop Fields
               </div>
 
-              <div className="flex-1 min-h-[200px] border border-gray-200 rounded-lg bg-gray-50 p-2 overflow-y-auto space-y-2" style={{ scrollbarWidth: 'thin' }}>
+              <div className="flex-1 min-h-[200px] border border-gray-200 dark:border-dark-border rounded-lg bg-gray-50 dark:bg-dark-bg p-2 overflow-y-auto space-y-2 transition-colors duration-300" style={{ scrollbarWidth: 'thin' }}>
                 {reportColumns.length === 0 ? (
-                  <div className="text-center text-gray-400 py-8 text-sm flex flex-col items-center">
+                  <div className="text-center text-gray-400 dark:text-gray-500 py-8 text-sm flex flex-col items-center transition-colors duration-300">
                     <svg className="w-8 h-8 opacity-50 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
                     </svg>
@@ -491,12 +549,12 @@ export default function ErpTemplateEditorPage() {
                       key={col.fieldname}
                       draggable
                       onDragStart={(e) => handleFieldDragStart(e, col.fieldname, col.label)}
-                      className={`cursor-grab active:cursor-grabbing transition-all flex items-center justify-between py-2.5 px-3 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 shadow-sm hover:translate-x-1 hover:border-blue-500 hover:bg-blue-50 ${
-                        isFieldPlaced(col.fieldname) ? 'bg-green-50 border-green-500 opacity-70' : ''
+                      className={`cursor-grab active:cursor-grabbing transition-all flex items-center justify-between py-2.5 px-3 bg-white dark:bg-dark-card border border-gray-200 dark:border-dark-border rounded-lg text-sm text-gray-700 dark:text-gray-200 shadow-sm hover:translate-x-1 hover:border-purple-500 dark:hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 ${
+                        isFieldPlaced(col.fieldname) ? 'bg-green-50 dark:bg-green-900/20 border-green-500 dark:border-green-600 opacity-70' : ''
                       }`}
                     >
                       <span>{col.label}</span>
-                      <span className="text-[10px] uppercase tracking-wide text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded font-semibold">
+                      <span className="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-dark-bg px-1.5 py-0.5 rounded font-semibold">
                         {col.fieldtype || 'Data'}
                       </span>
                     </div>
@@ -508,14 +566,14 @@ export default function ErpTemplateEditorPage() {
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 flex flex-col min-w-0 bg-gray-50/50 relative">
+        <main className="flex-1 flex flex-col min-w-0 bg-gray-50/50 dark:bg-dark-bg/50 relative transition-colors duration-300">
           {/* Toolbar */}
-          <header className="h-20 bg-white border-b border-gray-200 flex items-center justify-between px-8 shadow-sm z-10 shrink-0">
+          <header className="h-20 bg-white dark:bg-dark-card border-b border-gray-200 dark:border-dark-border flex items-center justify-between px-8 shadow-sm z-10 shrink-0 transition-colors duration-300">
             <div className="flex items-center gap-6 flex-1">
               {/* Template Name Input */}
               <div className="relative w-96 group">
                 <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                  <svg className="w-5 h-5 text-gray-400 group-focus-within:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 text-gray-400 dark:text-gray-500 group-focus-within:text-purple-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>
                 </div>
@@ -524,11 +582,11 @@ export default function ErpTemplateEditorPage() {
                   value={templateName}
                   onChange={(e) => setTemplateName(e.target.value)}
                   placeholder="Name your template..."
-                  className="block w-full pl-10 pr-3 py-2.5 border-b-2 border-transparent bg-transparent text-gray-900 font-semibold text-lg placeholder-gray-400 focus:outline-none focus:border-blue-600 transition-all hover:bg-gray-50 rounded-t-md"
+                  className="block w-full pl-10 pr-3 py-2.5 border-b-2 border-transparent bg-transparent text-gray-900 dark:text-white font-semibold text-lg placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-purple-600 dark:focus:border-purple-400 transition-all hover:bg-gray-50 dark:hover:bg-dark-bg rounded-t-md"
                 />
               </div>
-              <span className="text-gray-300 text-2xl font-light">|</span>
-              <span className="text-sm font-medium text-gray-500 truncate max-w-xs">
+              <span className="text-gray-300 dark:text-gray-600 text-2xl font-light">|</span>
+              <span className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate max-w-xs transition-colors duration-300">
                 {pdfFile ? pdfFile.name : 'No PDF Loaded'}
               </span>
             </div>
@@ -536,7 +594,7 @@ export default function ErpTemplateEditorPage() {
             <div className="flex items-center gap-4">
               <button 
                 onClick={clearAllFields}
-                className="text-red-500 hover:text-red-700 hover:bg-red-50 font-medium rounded-lg text-sm px-4 py-2.5 transition-colors"
+                className="text-red-500 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 font-medium rounded-lg text-sm px-4 py-2.5 transition-colors"
               >
                 Clear Fields
               </button>
@@ -544,7 +602,7 @@ export default function ErpTemplateEditorPage() {
               <button 
                 onClick={saveTemplate}
                 disabled={saving}
-                className="text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 focus:ring-4 focus:ring-purple-300 font-bold rounded-xl text-sm px-6 py-2.5 shadow-lg hover:shadow-xl transition-all flex items-center gap-2 disabled:opacity-50"
+                className="text-white bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 focus:ring-4 focus:ring-purple-300 dark:focus:ring-purple-800 font-bold rounded-xl text-sm px-6 py-2.5 shadow-lg hover:shadow-xl transition-all flex items-center gap-2 disabled:opacity-50"
               >
                 {saving ? (
                   <>
@@ -565,7 +623,7 @@ export default function ErpTemplateEditorPage() {
 
           {/* Canvas Area */}
           <div 
-            className="flex-1 overflow-auto p-12 flex justify-center bg-slate-100/50 relative"
+            className="flex-1 overflow-auto p-12 flex justify-center bg-slate-100/50 dark:bg-dark-bg/80 relative transition-colors duration-300"
             style={{ scrollbarWidth: 'thin' }}
             onDragOver={(e) => e.preventDefault()}
           >
@@ -573,24 +631,24 @@ export default function ErpTemplateEditorPage() {
             {!pdfLoaded && (
               <div className="self-center w-full max-w-xl">
                 <div 
-                  className="border-[3px] border-dashed border-gray-300 rounded-2xl p-12 text-center hover:border-blue-500 hover:bg-blue-50/50 transition-all cursor-pointer group bg-white shadow-sm"
-                  onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('border-blue-500', 'bg-blue-50', 'scale-[1.02]'); }}
-                  onDragLeave={(e) => { e.currentTarget.classList.remove('border-blue-500', 'bg-blue-50', 'scale-[1.02]'); }}
+                  className="border-[3px] border-dashed border-gray-300 dark:border-gray-600 rounded-2xl p-12 text-center hover:border-purple-500 dark:hover:border-purple-400 hover:bg-purple-50/50 dark:hover:bg-purple-900/20 transition-all cursor-pointer group bg-white dark:bg-dark-card shadow-sm"
+                  onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('border-purple-500', 'bg-purple-50', 'dark:bg-purple-900/30', 'scale-[1.02]'); }}
+                  onDragLeave={(e) => { e.currentTarget.classList.remove('border-purple-500', 'bg-purple-50', 'dark:bg-purple-900/30', 'scale-[1.02]'); }}
                   onDrop={(e) => {
                     e.preventDefault();
-                    e.currentTarget.classList.remove('border-blue-500', 'bg-blue-50', 'scale-[1.02]');
+                    e.currentTarget.classList.remove('border-purple-500', 'bg-purple-50', 'dark:bg-purple-900/30', 'scale-[1.02]');
                     const file = e.dataTransfer.files[0];
                     if (file && file.type === 'application/pdf') handlePdfUpload(file);
                   }}
                   onClick={() => fileInputRef.current?.click()}
                 >
-                  <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
-                    <svg className="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="w-20 h-20 bg-purple-100 dark:bg-purple-900/50 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
+                    <svg className="w-10 h-10 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                     </svg>
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">Upload PDF Template</h3>
-                  <p className="text-gray-500 mb-6">Drag and drop your PDF file here, or click to browse</p>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 transition-colors duration-300">Upload PDF Template</h3>
+                  <p className="text-gray-500 dark:text-gray-400 mb-6 transition-colors duration-300">Drag and drop your PDF file here, or click to browse</p>
                   <input 
                     ref={fileInputRef}
                     type="file" 
@@ -601,7 +659,7 @@ export default function ErpTemplateEditorPage() {
                       if (file) handlePdfUpload(file);
                     }}
                   />
-                  <span className="text-blue-600 font-semibold hover:text-blue-800 transition-colors">Browse Files</span>
+                  <span className="text-purple-600 dark:text-purple-400 font-semibold hover:text-purple-800 dark:hover:text-purple-300 transition-colors">Browse Files</span>
                 </div>
               </div>
             )}
@@ -950,6 +1008,52 @@ export default function ErpTemplateEditorPage() {
           </div>
         </main>
       </div>
+
+      {/* Duplicate Template Warning Modal */}
+      {showDuplicateModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
+          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:p-0">
+            <div 
+              className="fixed inset-0 bg-gray-900/75 dark:bg-black/80 transition-opacity" 
+              onClick={() => setShowDuplicateModal(false)}
+            ></div>
+
+            <div className="relative inline-block align-middle bg-white dark:bg-dark-card rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:max-w-lg sm:w-full border border-gray-200 dark:border-dark-border">
+              <div className="bg-white dark:bg-dark-card px-6 pt-6 pb-4">
+                <div className="flex items-start">
+                  <div className="flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 dark:bg-red-900/30">
+                    <svg className="h-6 w-6 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                  <div className="ml-4 text-left">
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                      Template Name Already Exists
+                    </h3>
+                    <div className="mt-2">
+                      <p className="text-sm text-gray-600 dark:text-gray-300">
+                        A template named <span className="font-semibold text-red-600 dark:text-red-400">"{duplicateTemplateName}"</span> already exists.
+                      </p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">
+                        Please choose a different name for your template.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gray-50 dark:bg-dark-bg px-6 py-4 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setShowDuplicateModal(false)}
+                  className="inline-flex justify-center items-center px-5 py-2.5 border border-transparent rounded-xl text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 transition-colors"
+                >
+                  OK, I'll Change the Name
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

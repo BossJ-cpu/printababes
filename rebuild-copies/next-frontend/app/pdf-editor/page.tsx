@@ -1760,7 +1760,7 @@ export default function PdfEditorPage() {
           <div className="relative max-w-full mx-auto px-6 py-3">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-2xl font-extrabold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">PDF Template Editor</h1>
+                <h1 className="text-2xl font-extrabold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent dark:text-white dark:bg-none">PDF Template Editor</h1>
                 <p className="text-gray-600 dark:text-gray-400 mt-1 text-xs transition-colors duration-300">Create and manage PDF field templates with precision</p>
               </div>
               <div className="flex items-center gap-3">

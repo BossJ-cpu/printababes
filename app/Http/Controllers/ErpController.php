@@ -601,6 +601,7 @@ class ErpController extends Controller
         $templates = $query->get()->map(function ($t) {
             return [
                 'id' => (string)$t->id,
+                'key' => $t->key,
                 'name' => $t->name ?? $t->key,
                 'report' => $t->doctype ?? $t->source_table ?? 'General',
                 'fields' => $t->fields_config ?? [],
@@ -628,6 +629,16 @@ class ErpController extends Controller
             $scale = $request->input('scale', 1.5);
 
             $key = strtolower(preg_replace('/[^a-zA-Z0-9]+/', '_', $name));
+
+            // Check if template with this key already exists
+            $existingTemplate = PdfTemplate::where('key', $key)->first();
+            if ($existingTemplate) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'A template with this name already exists. Please choose a different name.',
+                    'duplicate' => true
+                ], 409); // 409 Conflict
+            }
 
             // Handle PDF upload
             $filePath = null;
@@ -662,15 +673,13 @@ class ErpController extends Controller
                 ];
             }
 
-            $template = PdfTemplate::updateOrCreate(
-                ['key' => $key],
-                [
-                    'name' => $name,
-                    'doctype' => $report,
-                    'fields_config' => $fieldsConfig,
-                    'file_path' => $filePath,
-                ]
-            );
+            $template = PdfTemplate::create([
+                'key' => $key,
+                'name' => $name,
+                'doctype' => $report,
+                'fields_config' => $fieldsConfig,
+                'file_path' => $filePath,
+            ]);
 
             return response()->json([
                 'success' => true,

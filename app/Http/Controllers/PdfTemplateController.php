@@ -84,6 +84,12 @@ class PdfTemplateController extends Controller
             $data['images_config'] = $request->input('images_config');
         }
 
+        // Point-to-Shoot Printing: use_as_background setting
+        // true = template prints as background, false = transparent mode (only data fields print)
+        if ($request->has('use_as_background')) {
+            $data['use_as_background'] = $request->boolean('use_as_background');
+        }
+
         $template->update($data);
 
         return $template;
@@ -441,7 +447,9 @@ class PdfTemplateController extends Controller
                 'template_id' => $template->id,
                 'total_rows' => count($allData),
                 'headers' => $headers,
-                'fields_config' => $template->fields_config
+                'fields_config' => $template->fields_config,
+                'use_as_background' => $template->use_as_background ?? true,
+                'mode' => ($template->use_as_background ?? true) ? 'Normal (with background)' : 'Point-to-Shoot (transparent/no background)'
             ]);
             
             $pdfSourcePath = storage_path('app/public/' . $template->file_path);
@@ -459,6 +467,10 @@ class PdfTemplateController extends Controller
             }
 
             $generatedFiles = [];
+            
+            // Check if we should use the template as background
+            // When use_as_background is false (Point-to-Shoot mode), only print data fields on blank page
+            $useAsBackground = $template->use_as_background ?? true;
 
             // Generate individual PDFs for each row
             foreach ($allData as $rowIndex => $rowData) {
@@ -473,7 +485,12 @@ class PdfTemplateController extends Controller
                     $size = $pdf->getTemplateSize($templateId);
                     
                     $pdf->AddPage($size['orientation'], array($size['width'], $size['height']));
-                    $pdf->useTemplate($templateId);
+                    
+                    // Only use template as background if use_as_background is true
+                    // Point-to-Shoot mode (use_as_background=false) prints only data on blank page
+                    if ($useAsBackground) {
+                        $pdf->useTemplate($templateId);
+                    }
                     
                     $pdf->SetFont('Arial', '', 12);
                     $pdf->SetTextColor(0, 0, 0);

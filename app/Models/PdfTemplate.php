@@ -8,12 +8,13 @@ use Illuminate\Support\Facades\Schema;
 
 class PdfTemplate extends Model
 {
-    protected $fillable = ['key', 'name', 'fields_config', 'images_config', 'file_path', 'source_table', 'pdf_path', 'elements', 'data_source_type', 'doctype'];
+    protected $fillable = ['key', 'name', 'fields_config', 'images_config', 'file_path', 'source_table', 'pdf_path', 'elements', 'data_source_type', 'doctype', 'use_as_background'];
 
     protected $casts = [
         'fields_config' => 'array',
         'images_config' => 'array',
         'elements' => 'array',
+        'use_as_background' => 'boolean',
     ];
 
     public function dataImport()

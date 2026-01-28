@@ -47,6 +47,7 @@ interface PDFViewerProps {
     selectedFieldKey?: string | null;
     onSelectField?: (fieldKey: string | null) => void;
     onRemoveField?: (fieldKey: string) => void;
+    transparentMode?: boolean; // When true, PDF background is semi-transparent for coordinate mapping
 }
 
 export default function PDFViewer({ 
@@ -67,7 +68,8 @@ export default function PDFViewer({
     backendDimensions, 
     selectedFieldKey, 
     onSelectField, 
-    onRemoveField 
+    onRemoveField,
+    transparentMode = false
 }: PDFViewerProps) {
     const [numPages, setNumPages] = useState<number>(0);
     const [pageDims, setPageDims] = useState<Record<number, {width: number, height: number}>>({});
@@ -310,7 +312,26 @@ export default function PDFViewer({
     }, [dragState.isDragging, handleGlobalMouseMove, handleGlobalMouseUp]);
 
     return (
-        <div style={{ boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', backgroundColor: '#f3f4f6' }}>
+        <div style={{ boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)', backgroundColor: transparentMode ? 'transparent' : '#f3f4f6' }}>
+            {/* Transparent Mode Indicator Banner */}
+            {transparentMode && (
+                <div style={{
+                    backgroundColor: 'rgba(139, 92, 246, 0.9)',
+                    color: 'white',
+                    padding: '8px 16px',
+                    textAlign: 'center',
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    borderBottom: '2px solid rgba(139, 92, 246, 1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px'
+                }}>
+                    <span>👁️</span>
+                    <span>Point-to-Shoot Mode: Template is transparent for coordinate mapping. The background won&apos;t print.</span>
+                </div>
+            )}
             <Document 
                 file={url}
                 onLoadSuccess={({ numPages }) => setNumPages(numPages)}
@@ -329,8 +350,8 @@ export default function PDFViewer({
                             data-pdf-page={pageNumber}
                             style={{ 
                                 position: 'relative', 
-                                backgroundColor: 'white', 
-                                boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)', 
+                                backgroundColor: transparentMode ? 'rgba(255, 255, 255, 0.3)' : 'white',
+                                boxShadow: transparentMode ? '0 0 0 2px rgba(139, 92, 246, 0.5)' : '0 1px 2px 0 rgba(0, 0, 0, 0.05)', 
                                 cursor: 'crosshair', 
                                 marginBottom: '1rem',
                                 width: 'fit-content',
@@ -401,12 +422,19 @@ export default function PDFViewer({
                                 alert(`Page ${pageNumber} dimensions: ${dims.width.toFixed(2)}mm x ${dims.height.toFixed(2)}mm\n\nClick to add fields. Coordinates are in millimeters.\n\nFor best accuracy:\n- Use a consistent zoom level\n- Click exactly where you want the text to start`);
                             }}
                         >
-                            <Page 
-                                pageNumber={pageNumber} 
-                                renderTextLayer={false} 
-                                renderAnnotationLayer={false}
-                                onLoadSuccess={onPageLoad}
-                            />
+                            {/* PDF Page with optional transparency for point-to-shoot mode */}
+                            <div style={{ 
+                                opacity: transparentMode ? 0.35 : 1,
+                                transition: 'opacity 0.3s ease',
+                                pointerEvents: 'none' // Let clicks pass through to parent container
+                            }}>
+                                <Page 
+                                    pageNumber={pageNumber} 
+                                    renderTextLayer={false} 
+                                    renderAnnotationLayer={false}
+                                    onLoadSuccess={onPageLoad}
+                                />
+                            </div>
                             
                             {/* Hover Tooltip (Per Page) */}
                             {hoverCoords && (

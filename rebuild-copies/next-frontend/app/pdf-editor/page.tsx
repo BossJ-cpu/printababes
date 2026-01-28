@@ -41,6 +41,7 @@ type TemplateConfig = {
   file_path?: string;
   source_table?: string;
   data_source_type?: 'database' | 'csv' | 'erp';
+  use_as_background?: boolean; // When true, template prints as background; when false, it's transparent for coordinate mapping
 };
 
 // Subcomponent: Field Row with Optimized Design
@@ -302,6 +303,10 @@ export default function PdfEditorPage() {
   const [penThickness, setPenThickness] = useState(3);
   const [signatureRecordRange, setSignatureRecordRange] = useState('');
   const signatureCanvasRef = React.useRef<HTMLCanvasElement>(null);
+
+  // Point-to-Shoot Printing Mode: When true, PDF template is transparent for coordinate mapping only
+  // When false, the PDF template will be used as the printed background
+  const [transparentMode, setTransparentMode] = useState(false);
 
   // Redirect if no valid mode
   useEffect(() => {
@@ -606,6 +611,11 @@ export default function PdfEditorPage() {
           fields_config: data.fields_config || {} 
       });
       
+      // Load transparent mode (point-to-shoot) setting from template
+      // use_as_background: false means transparent mode (point-to-shoot)
+      // use_as_background: true (or undefined) means template prints as background
+      setTransparentMode(data.use_as_background === false);
+      
       // Load images_config into uploadedImages state
       if (data.images_config && typeof data.images_config === 'object') {
         setUploadedImages(data.images_config);
@@ -708,7 +718,8 @@ export default function PdfEditorPage() {
             images_config: uploadedImages, // Include images
             file_path: template.file_path,
             name: template.name || template.key,
-            source_table: template.source_table
+            source_table: template.source_table,
+            use_as_background: !transparentMode // Save the inverse: true = use as background, false = transparent/point-to-shoot
         }),
       });
       if(res.ok) {
@@ -2071,6 +2082,45 @@ export default function PdfEditorPage() {
                     </svg>
                     Upload your PDF template file. After upload, click Preview to view it
                   </p>
+                  
+                  {/* Point-to-Shoot Mode Toggle */}
+                  <div className="mt-4 p-3 bg-white dark:bg-dark-card border-2 border-violet-200 dark:border-violet-700 rounded-lg transition-colors duration-300">
+                    <label className="flex items-start gap-3 cursor-pointer group">
+                      <div className="relative flex items-center justify-center mt-0.5">
+                        <input
+                          type="checkbox"
+                          checked={transparentMode}
+                          onChange={(e) => setTransparentMode(e.target.checked)}
+                          className="sr-only peer"
+                        />
+                        <div className="w-5 h-5 border-2 border-violet-400 dark:border-violet-500 rounded peer-checked:bg-violet-500 peer-checked:border-violet-500 transition-all duration-200 flex items-center justify-center">
+                          {transparentMode && (
+                            <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7"/>
+                            </svg>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex-1">
+                        <span className="text-sm font-bold text-violet-900 dark:text-violet-200 flex items-center gap-2">
+                          <span>👁️</span>
+                          Point-to-Shoot Mode (Transparent Background)
+                        </span>
+                        <p className="text-xs text-violet-700 dark:text-violet-400 mt-1 leading-relaxed">
+                          {transparentMode ? (
+                            <>
+                              <strong className="text-violet-900 dark:text-violet-300">✅ Enabled:</strong> The PDF template is shown as a semi-transparent guide for coordinate mapping. 
+                              <span className="font-semibold"> Only the data fields will print</span>, not the template background.
+                            </>
+                          ) : (
+                            <>
+                              <strong className="text-violet-900 dark:text-violet-300">☐ Disabled:</strong> The PDF template will be used as the actual printed background with data overlaid on top.
+                            </>
+                          )}
+                        </p>
+                      </div>
+                    </label>
+                  </div>
                 </div>
 
                 {/* Image/Signature Upload */}
@@ -2530,6 +2580,7 @@ export default function PdfEditorPage() {
                         onRemoveImage={handleRemoveImage}
                         selectedImageKey={selectedImageKey}
                         onSelectImage={setSelectedImageKey}
+                        transparentMode={transparentMode}
                       />
                     </div>
                 ) : (
